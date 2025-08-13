@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enhanced_agent"
+version = "0.1.0"
+description = "Enhanced agent package"
+requires-python = ">=3.8"
+dependencies = [
+    "openai>=1.58.1,<1.67.0",
+    "requests>=2.31.0",
+    "pathlib>=1.0.1",
+    "typing>=3.7.4.3",
+    "asyncio>=3.4.3"
+]
+
+[project.optional-dependencies]
+# Add any optional dependencies here
+
+[tool.setuptools]
+packages = {find = {where = ["."]}}

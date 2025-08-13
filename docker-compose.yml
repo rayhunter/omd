@@ -1,0 +1,13 @@
+services:
+  openmanus:
+    build:
+      context: ./OpenManus
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"  # In case we need to expose any web interface
+    working_dir: /app/OpenManus
+    environment:
+      - PYTHONPATH=/app/OpenManus:/app
+    command: python /app/app.py 
