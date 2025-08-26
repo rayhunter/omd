@@ -1,7 +1,7 @@
 # Global LLM configuration
 [llm]
 api_type = 'ollama'
-model = "gemma3:4b"
+model = "gemma2:2b"
 base_url = "http://localhost:11434/v1"
 api_key = "ollama"
 max_tokens = 4096
@@ -9,7 +9,7 @@ temperature = 0.0
 
 [llm.vision]
 api_type = 'ollama'
-model = "gemma3:4b"
+model = "gemma2:2b"
 base_url = "http://localhost:11434/v1"
 api_key = "ollama"
 max_tokens = 4096

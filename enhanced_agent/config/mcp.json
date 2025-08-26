@@ -2,11 +2,12 @@
   "servers": {
     "llama-mcp": {
       "url": "http://localhost:11434",
-      "model": "gemma3:4b",
+      "model": "gemma2:2b",
       "context_length": 4096,
       "temperature": 0.7,
-      "max_tokens": 2048
+      "max_tokens": 1024,
+      "timeout": 60
     }
   },
   "default_server": "llama-mcp"
-} 
+}

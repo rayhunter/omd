@@ -21,7 +21,7 @@ cd enhanced_agent
 pip install -e .
 
 # Install DSPy for structured reasoning
-pip install dspy-ai>=2.0.0
+pip install dspy-ai
 
 # Install OpenManus dependencies  
 cd ../OpenManus

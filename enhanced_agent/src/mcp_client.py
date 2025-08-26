@@ -59,7 +59,7 @@ class MCPClient:
                 }
             }
             
-            response = requests.post(url, json=payload, timeout=30)
+            response = requests.post(url, json=payload, timeout=config.get("timeout", 60))
             response.raise_for_status()
             
             result = response.json()

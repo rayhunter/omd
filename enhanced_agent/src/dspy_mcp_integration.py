@@ -131,10 +131,23 @@ class DSPyMCPIntegration:
         
         gathered_info = []
         
+        # Parse search terms if they come as a single string with line breaks
+        if len(search_terms) == 1 and '\n' in search_terms[0]:
+            # Split multi-line search terms and clean them
+            parsed_terms = []
+            for line in search_terms[0].split('\n'):
+                line = line.strip()
+                if line and not line.startswith(('#', '-', '•')):
+                    # Remove numbering like "1. " or "2. "
+                    if '. ' in line and line[0].isdigit():
+                        line = line.split('. ', 1)[1]
+                    parsed_terms.append(line)
+            search_terms = parsed_terms[:max_queries]  # Limit to max_queries
+        
         # Use top search terms up to max_queries limit
         for i, term in enumerate(search_terms[:max_queries]):
             try:
-                print(f"🔍 MCP Query {i+1}/{min(len(search_terms), max_queries)}: '{term}'")
+                print(f"🔍 MCP Query {i+1}/{min(len(search_terms), max_queries)}: '{term[:50]}{'...' if len(term) > 50 else ''}'")
                 
                 # Query MCP for this search term
                 response = self.mcp_client.search(term)
