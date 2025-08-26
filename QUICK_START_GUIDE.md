@@ -26,6 +26,7 @@ pip install dspy-ai
 # Install OpenManus dependencies  
 cd ../OpenManus
 pip install -r requirements.txt
+
 ```
 
 ### 3. Set Up Ollama (for MCP)
@@ -52,6 +53,7 @@ export OPENAI_API_KEY="your-api-key-here"
 ```bash
 # From the main directory
 python enhanced_agent/main.py
+streamlit run enhanced_agent_streamlit.py --server.headless true --server.port 8501
 ```
 
 ### Method 2: Alternative Entry Point
