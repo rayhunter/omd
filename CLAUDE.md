@@ -4,86 +4,102 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This workspace contains multiple AI/ML development projects, web applications, and tools for various automation and data processing tasks.
+This workspace contains multiple AI/ML development projects focused on agent-based automation, research, and web interaction. The repository combines OpenManus (a general-purpose AI agent framework) with enhanced research capabilities through DSPy and MCP integration.
 
 ## Key Projects
 
 ### OpenManus (General AI Agent Framework)
-- **Location**: `omd/OpenManus/`
+- **Location**: `OpenManus/`
 - **Type**: Python-based multi-modal AI agent system with browser automation and tool integration
-- **Commands**:
-  - `pip install -r requirements.txt` - Install dependencies 
-  - `python main.py` - Run basic agent (terminal input)
-  - `python run_flow.py` - Run planning flow (recommended, includes timeout handling)
-  - `pytest` - Run tests
-- **Configuration**: Copy `config/config.example.toml` to `config/config.toml` and configure LLM API keys
-- **Environment**: Requires LLM API keys (supports OpenAI, Anthropic, Azure, Ollama)
+- **Primary Entry Points**:
+  - `python OpenManus/main.py` - Basic agent with terminal input
+  - `python OpenManus/run_flow.py` - Advanced planning flows with timeout handling (recommended)
+- **Configuration**: Copy `OpenManus/config/config.example.toml` to `OpenManus/config/config.toml` and configure LLM API keys
+- **Testing**: `pytest OpenManus/tests/` (supports async tests with pytest-asyncio)
 - **Architecture**: Agent-based with tool collection, browser automation via browser-use, sandbox support
 
 ### Enhanced MCP Agent with DSPy Integration
 - **Location**: `enhanced_agent/` (complete package with DSPy modules)
 - **Type**: Research agent combining OpenManus ReAct + DSPy structured reasoning + MCP integration
-- **Commands**:
-  - `python enhanced_agent/main.py` - Run enhanced research agent with full DSPy pipeline
+- **Primary Entry Points**:
+  - `python enhanced_agent/main.py` - Full integration with DSPy+MCP+OpenManus
   - `python enhanced_agent/src/app.py` - Alternative entry point
-  - `python test_dspy_standalone.py` - Test DSPy integration without dependencies
+  - `./run_streamlit.sh` - Streamlit web interface (recommended for interactive use)
 - **Dependencies**: 
   - `dspy-ai>=2.0.0` - Structured reasoning and prompt optimization
   - OpenManus ReAct agent framework
   - MCP client for external information gathering
-- **Architecture**: 
-  - **Query Analysis**: DSPy signatures for structured query understanding
-  - **Information Gathering**: MCP client with intelligent search term generation  
-  - **Synthesis**: DSPy modules for information integration and reasoning
-  - **Response Generation**: Structured output with confidence levels and actionable insights
 
 ## Development Commands
 
 ### Build System (Using Makefile and UV)
 The repository uses a unified build system with both Makefile and shell scripts:
+
+#### Core Commands
 - `make install` - Install all packages in development mode using uv
 - `make test` - Run all tests across projects (uses pytest with async support)
+- `make test-unit` - Run unit tests only
+- `make test-integration` - Run integration tests only  
+- `make test-coverage` - Run tests with coverage reporting
 - `make lint` - Run linting (black, flake8, isort)
 - `make format` - Auto-format code (black, isort)
-- `make lock` - Generate requirements.lock files from pyproject.toml
 - `make clean` - Clean up virtual environments and cache files
+
+#### Development Scripts
 - `./scripts/dev.sh setup` - Set up complete development environment
 - `./scripts/dev.sh run [module]` - Run specific modules
+- `./run_streamlit.sh` - Launch Streamlit interface for enhanced agent
 
 ### Individual Project Commands
 
 #### OpenManus Agent Development
-1. **Setup**: Copy `OpenManus/config/config.example.toml` to `OpenManus/config/config.toml` and configure LLM API keys
-2. **Installation**: 
-   - Recommended: `cd OpenManus && uv venv --python 3.12 && source .venv/bin/activate && uv pip install -r requirements.txt`
-   - Alternative: `pip install -r OpenManus/requirements.txt`
-3. **Running**:
-   - `python OpenManus/main.py` - Basic agent with terminal input
-   - `python OpenManus/run_flow.py` - Advanced planning flows with 1-hour timeout handling (recommended)
-4. **Testing**: `pytest OpenManus/tests/` (supports async tests with pytest-asyncio)
-
-#### Enhanced MCP Agent with DSPy Integration
 1. **Setup**: 
-   - `cd enhanced_agent && pip install -e .`
-   - `pip install dspy-ai>=2.0.0` (for structured reasoning)
-2. **Configuration**: 
-   - Edit `enhanced_agent/config/mcp.json` for MCP servers (requires Ollama on port 11434)
-   - Set OpenAI API key for DSPy: `export OPENAI_API_KEY=your_key` (optional, falls back to basic mode)
-3. **Running**: 
-   - `python enhanced_agent/main.py` - Full integration with DSPy+MCP+OpenManus
-   - `python test_dspy_standalone.py` - Test components independently  
-4. **Architecture**: Three-layer integration:
-   - **OpenManus Layer**: ReAct agent execution and step management
-   - **DSPy Layer**: Structured reasoning with signatures (QueryAnalysis, InformationSynthesis, ResponseGeneration)
-   - **MCP Layer**: External information gathering with intelligent query optimization
+   ```bash
+   cp OpenManus/config/config.example.toml OpenManus/config/config.toml
+   # Edit config.toml with your LLM API keys
+   ```
 
-## Common Patterns
+2. **Installation**: 
+   ```bash
+   cd OpenManus
+   uv venv --python 3.12 && source .venv/bin/activate
+   uv pip install -r requirements.txt
+   # Alternative: pip install -r requirements.txt
+   ```
 
-- **Configuration Files**: TOML and JSON configs for LLM API keys and service settings
-- **Multi-LLM Support**: Projects support OpenAI, Anthropic, Azure OpenAI, and Ollama
-- **Agent Architectures**: ReAct pattern, tool-calling agents, and planning-based flows
-- **Tool Integration**: File operations, web browsing, Python execution, and search capabilities
-- **Async/Await**: Extensive use of async patterns for concurrent operations
+3. **Running**:
+   ```bash
+   python OpenManus/main.py          # Basic agent
+   python OpenManus/run_flow.py      # Planning flows with timeout (recommended)
+   ```
+
+4. **Testing**: 
+   ```bash
+   pytest OpenManus/tests/           # All OpenManus tests
+   pytest -m "not slow"              # Fast tests only
+   ```
+
+#### Enhanced Agent with DSPy+MCP Integration
+1. **Setup**:
+   ```bash
+   cd enhanced_agent
+   pip install -e .
+   pip install dspy-ai>=2.0.0
+   ```
+
+2. **Configuration**:
+   ```bash
+   # Configure MCP servers in enhanced_agent/config/mcp.json
+   # Requires Ollama on port 11434 for default setup
+   export OPENAI_API_KEY="your_key"  # Optional, for DSPy structured reasoning
+   ```
+
+3. **Running**:
+   ```bash
+   python enhanced_agent/main.py     # Full integration
+   ./run_streamlit.sh                # Web interface (recommended)
+   python test_dspy_standalone.py    # Test components independently
+   ```
 
 ## Architecture Overview
 
@@ -119,7 +135,7 @@ The OpenManus framework follows a modular, plugin-based architecture:
 ### Enhanced Agent Integration Pattern
 The enhanced agent demonstrates a sophisticated three-way integration:
 
-#### OpenManus + DSPy + MCP Integration Architecture
+#### DSPy + MCP + OpenManus Integration Architecture
 - **DSPy Structured Reasoning** (`enhanced_agent/src/dspy_modules.py`):
   - `QueryAnalysis` signature: Extracts topics, query types, and optimal search terms
   - `InformationSynthesis` signature: Combines external info with query context  
@@ -142,11 +158,47 @@ The enhanced agent demonstrates a sophisticated three-way integration:
   - State management for multi-step research workflows
   - Graceful degradation when DSPy is unavailable
 
-### Project Structure Patterns
-- **Dual Package Layout**: Both OpenManus and enhanced_agent use pyproject.toml with setuptools
-- **Config Management**: TOML files for LLM settings, JSON for service configurations  
-- **Virtual Environment**: UV-based dependency management with lock files
-- **Entry Points**: Multiple entry scripts (main.py for basic, run_flow.py for advanced)
+## Configuration Management
+
+### LLM Provider Configuration
+Both projects support multiple LLM providers via TOML configuration:
+
+#### Supported Providers
+- **OpenAI**: Standard OpenAI API
+- **Anthropic**: Claude models (recommended default)
+- **Azure OpenAI**: Enterprise Azure deployment
+- **Ollama**: Local LLM deployment
+
+#### Configuration Example (`OpenManus/config/config.toml`)
+```toml
+[llm]
+model = "claude-3-7-sonnet-20250219"
+base_url = "https://api.anthropic.com/v1/"
+api_key = "YOUR_API_KEY"
+max_tokens = 8192
+temperature = 0.0
+
+[llm.vision]
+model = "claude-3-7-sonnet-20250219"
+base_url = "https://api.anthropic.com/v1/"
+api_key = "YOUR_API_KEY"
+```
+
+### MCP Server Configuration
+Configure external information sources via JSON (`enhanced_agent/config/mcp.json`):
+```json
+{
+  "servers": {
+    "llama-mcp": {
+      "url": "http://localhost:11434",
+      "model": "gemma2:2b",
+      "context_length": 4096,
+      "temperature": 0.7
+    }
+  },
+  "default_server": "llama-mcp"
+}
+```
 
 ## Development Patterns
 
@@ -161,20 +213,98 @@ The enhanced agent demonstrates a sophisticated three-way integration:
 - Graceful degradation with proper logging
 - Sandbox cleanup on exit
 
-### Configuration Management
-- Environment-specific config files (example configs provided)
-- Multi-LLM provider support (OpenAI, Anthropic, Azure, Ollama)
-- Secure API key handling with .toml configuration files
+### Package Management
+- **UV-based Dependencies**: Fast dependency resolution and virtual environment management
+- **Dual Package Layout**: Both OpenManus and enhanced_agent use pyproject.toml with setuptools
+- **Lock Files**: Requirements pinning for reproducible builds (`make lock`)
 
 ## Testing and Quality Assurance
 
 ### Testing Framework
 - **pytest** with async support (`pytest-asyncio`) for all async components
-- **Test Coverage**: Sandbox operations, MCP integration, agent behaviors
-- **Isolation**: Each test component runs in controlled environments
+- **Test Categories**: Unit tests (`-m unit`), integration tests (`-m integration`), slow tests (`-m slow`)
+- **Consolidated Testing**: Root-level pytest configuration for cross-project testing
+- **Coverage**: HTML and terminal coverage reporting (`make test-coverage`)
+
+### Test Execution
+```bash
+make test                    # All tests
+make test-unit              # Unit tests only
+make test-integration       # Integration tests only
+make test-fast              # Exclude slow tests
+pytest OpenManus/tests/     # OpenManus specific
+pytest enhanced_agent/tests/ # Enhanced agent specific
+```
 
 ### Code Quality
-- **Black + isort**: Automated code formatting
-- **Flake8**: Style and error checking  
-- **Requirements Locking**: UV-based dependency pinning for reproducible builds
+- **Black + isort**: Automated code formatting (`make format`)
+- **Flake8**: Style and error checking (`make lint`)
 - **Pre-commit Hooks**: Quality checks before commits (noted in OpenManus README)
+
+## Common Development Workflows
+
+### Setting Up Development Environment
+```bash
+# Quick setup
+make install
+
+# Manual setup
+./scripts/dev.sh setup
+
+# Project-specific setup
+cd OpenManus && uv venv --python 3.12 && source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
+### Running the Enhanced Research Agent
+```bash
+# Streamlit web interface (recommended)
+./run_streamlit.sh
+
+# Command-line interface
+python enhanced_agent/main.py
+
+# Testing components
+python test_dspy_standalone.py
+```
+
+### Development and Testing Cycle
+```bash
+# Make changes to code
+make format              # Format code
+make lint               # Check style
+make test-fast          # Quick tests
+make test               # Full test suite
+```
+
+## Common Issues and Prerequisites
+
+### External Dependencies
+- **Ollama**: Required for MCP integration (port 11434)
+- **Docker**: Required for sandbox environment
+- **Playwright**: Browser automation dependencies
+- **API Keys**: LLM provider API keys in configuration files
+
+### Environment Variables
+```bash
+export OPENAI_API_KEY="your-key"     # For DSPy structured reasoning
+# Configure other LLM providers in config.toml files
+```
+
+### Virtual Environment Management
+The project uses UV for fast package management, but standard pip/conda also work:
+```bash
+# UV (recommended)
+uv venv --python 3.12 && source .venv/bin/activate
+
+# Traditional
+python -m venv venv && source venv/bin/activate
+```
+
+## Integration Points
+
+### Enhanced Agent as OpenManus Tool
+The enhanced agent is integrated into OpenManus as a tool (`OpenManus/app/tool/enhanced_agent_tool.py`), allowing the main agent to delegate complex research tasks when needed.
+
+### Streamlit Interface Integration
+The `./run_streamlit.sh` script provides a web interface that combines all capabilities in a user-friendly format, automatically handling virtual environment activation and dependency checks.
