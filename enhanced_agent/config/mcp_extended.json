@@ -1,0 +1,83 @@
+{
+  "servers": {
+    "llama-mcp": {
+      "type": "ollama",
+      "url": "http://localhost:11434",
+      "model": "gemma2:2b",
+      "context_length": 4096,
+      "temperature": 0.7,
+      "max_tokens": 1024,
+      "timeout": 60,
+      "description": "Local Ollama model for general knowledge and reasoning",
+      "capabilities": ["general_knowledge", "reasoning", "analysis"]
+    },
+    "web-search": {
+      "type": "web_search",
+      "url": "https://api.duckduckgo.com",
+      "timeout": 30,
+      "max_results": 10,
+      "description": "DuckDuckGo web search for current information",
+      "capabilities": ["current_events", "web_search", "real_time_data"]
+    },
+    "wikipedia": {
+      "type": "wikipedia",
+      "url": "https://en.wikipedia.org/api/rest_v1",
+      "timeout": 30,
+      "max_results": 5,
+      "description": "Wikipedia API for encyclopedic knowledge",
+      "capabilities": ["encyclopedic_knowledge", "factual_data", "historical_info"]
+    },
+    "arxiv": {
+      "type": "arxiv",
+      "url": "http://export.arxiv.org/api/query",
+      "timeout": 30,
+      "max_results": 10,
+      "description": "arXiv API for scientific papers and research",
+      "capabilities": ["scientific_research", "academic_papers", "latest_research"]
+    },
+    "news-api": {
+      "type": "news",
+      "url": "https://newsapi.org/v2",
+      "api_key": "${NEWS_API_KEY}",
+      "timeout": 30,
+      "max_results": 10,
+      "description": "News API for current news and events",
+      "capabilities": ["breaking_news", "current_events", "global_news"]
+    },
+    "github": {
+      "type": "github",
+      "url": "https://api.github.com",
+      "api_key": "${GITHUB_TOKEN}",
+      "timeout": 30,
+      "max_results": 10,
+      "description": "GitHub API for code search and repository information",
+      "capabilities": ["code_search", "repositories", "development_trends"]
+    },
+    "finance": {
+      "type": "finance",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart",
+      "timeout": 30,
+      "description": "Yahoo Finance API for financial data",
+      "capabilities": ["stock_prices", "market_data", "financial_news"]
+    },
+    "weather": {
+      "type": "weather",
+      "url": "https://api.openweathermap.org/data/2.5",
+      "api_key": "${WEATHER_API_KEY}",
+      "timeout": 30,
+      "description": "OpenWeatherMap API for weather information",
+      "capabilities": ["current_weather", "forecasts", "climate_data"]
+    }
+  },
+  "default_server": "llama-mcp",
+  "server_selection_strategy": "auto",
+  "fallback_servers": ["llama-mcp", "web-search"],
+  "routing_rules": {
+    "current_events": ["news-api", "web-search"],
+    "scientific_research": ["arxiv", "web-search"],
+    "general_knowledge": ["wikipedia", "llama-mcp"],
+    "code_related": ["github", "web-search"],
+    "financial": ["finance", "web-search"],
+    "weather": ["weather", "web-search"]
+  }
+}
