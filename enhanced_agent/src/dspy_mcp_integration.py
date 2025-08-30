@@ -12,6 +12,10 @@ import dspy
 from typing import Dict, Any, List, Optional
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from .dspy_modules import StructuredResearchPipeline, QuickAnalysis, ResearchPiplineResult
 from .mcp_client import MCPClient

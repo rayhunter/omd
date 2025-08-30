@@ -3,6 +3,10 @@ from typing import Optional
 import sys
 from pathlib import Path
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Import our integration modules
 from .dspy_mcp_integration import DSPyMCPIntegration

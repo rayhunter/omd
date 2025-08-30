@@ -4,6 +4,10 @@ import sys
 from pathlib import Path
 import time
 from typing import Dict, List, Optional
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure Streamlit page
 st.set_page_config(
@@ -140,7 +144,7 @@ def display_architecture_info():
         "🤖 **OpenManus ReAct Pattern**\n   Step-by-step processing",
         "🔍 **MCP Integration**\n   Real-time information gathering",
         "🧠 **DSPy Structured Reasoning**\n   Query analysis & response generation",     
-        "📊 **Processing Pipeline**\n   Query → Analysis → Info Gathering → Synthesis"
+        "📊 **Processing Pipeline**\n   Query → Info Gathering → Analysis → Synthesis"
     ]
     
     for component in components:
@@ -371,13 +375,18 @@ def main():
                     # Add to chat history
                     st.session_state.messages.append({"role": "assistant", "content": result})
                     
-                    # Option to download response
-                    st.download_button(
-                        label="📄 Download Response",
-                        data=result,
-                        file_name=f"research_response_{int(time.time())}.md",
-                        mime="text/markdown"
-                    )
+                    # Store the result for download outside the form
+                    st.session_state.last_result = result
+    
+    # Download button outside the form
+    if hasattr(st.session_state, 'last_result') and st.session_state.last_result:
+        st.download_button(
+            label="📄 Download Last Response",
+            data=st.session_state.last_result,
+            file_name=f"research_response_{int(time.time())}.md",
+            mime="text/markdown",
+            key="download_last_response"
+        )
     
     # Footer
     st.markdown("---")

@@ -38,9 +38,34 @@ lock:
 		(cd $$project && $(UV) pip compile -o requirements.lock pyproject.toml); \
 	done
 
-# Run tests
-test: install
-	@echo "Running tests..."
+# Run tests using virtual environment
+test:
+	@echo "Running consolidated tests..."
+	@./virtual/bin/python -m pytest tests/ -v
+
+# Run unit tests only
+test-unit:
+	@echo "Running unit tests..."
+	@./virtual/bin/python -m pytest tests/unit/ -v -m unit
+
+# Run integration tests only
+test-integration:
+	@echo "Running integration tests..."
+	@./virtual/bin/python -m pytest tests/integration/ -v -m integration
+
+# Run tests with coverage
+test-coverage:
+	@echo "Running tests with coverage..."
+	@./virtual/bin/python -m pytest tests/ --cov=enhanced_agent --cov=OpenManus --cov-report=html --cov-report=term
+
+# Run fast tests (exclude slow ones)
+test-fast:
+	@echo "Running fast tests..."
+	@./virtual/bin/python -m pytest tests/ -v -m "not slow"
+
+# Run individual project tests (legacy)
+test-projects: install
+	@echo "Running individual project tests..."
 	@for project in $(PROJECTS); do \
 		echo "Testing $$project..."; \
 		(cd $$project && $(PYTHON) -m pytest -v || exit 1); \
@@ -75,12 +100,17 @@ clean:
 # Help message
 help:
 	@echo "Available commands:"
-	@echo "  make install      Install all packages in development mode"
-	@echo "  make install-prod Install production dependencies"
-	@echo "  make lock         Generate lock files"
-	@echo "  make test         Run tests"
-	@echo "  make lint         Run linting"
-	@echo "  make format       Format code"
-	@echo "  make clean        Clean up"
+	@echo "  make install          Install all packages in development mode"
+	@echo "  make install-prod     Install production dependencies"
+	@echo "  make lock             Generate lock files"
+	@echo "  make test             Run all tests"
+	@echo "  make test-unit        Run unit tests only"
+	@echo "  make test-integration Run integration tests only"
+	@echo "  make test-coverage    Run tests with coverage"
+	@echo "  make test-fast        Run fast tests (exclude slow)"
+	@echo "  make test-projects    Run individual project tests (legacy)"
+	@echo "  make lint             Run linting"
+	@echo "  make format           Format code"
+	@echo "  make clean            Clean up"
 
-.PHONY: all venv install install-prod lock test lint format clean help
+.PHONY: all venv install install-prod lock test test-unit test-integration test-coverage test-fast test-projects lint format clean help

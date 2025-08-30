@@ -8,7 +8,8 @@ from pathlib import Path
 import asyncio
 
 # Add the enhanced_agent src to path
-sys.path.append(str(Path(__file__).parent / "enhanced_agent" / "src"))
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root / "enhanced_agent" / "src"))
 
 try:
     from enhanced_mcp_client import EnhancedMCPClient

@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 
 # Add enhanced_agent to path
-sys.path.insert(0, str(Path(__file__).parent / "enhanced_agent" / "src"))
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "enhanced_agent" / "src"))
 
 def test_dspy_imports():
     """Test that we can import DSPy and our modules."""
