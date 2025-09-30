@@ -1,0 +1,57 @@
+# Production Environment Configuration
+# This file contains production-specific settings for the OMD project
+
+[app]
+environment = "production"
+debug = false
+version = "1.0.0"
+host = "0.0.0.0"
+port = 8501
+workers = 4
+max_steps = 10
+request_timeout = 300
+enable_sandbox = true
+
+# Feature flags for production
+enable_dspy = true
+enable_mcp = true
+enable_metrics = true
+enable_tracing = true
+
+[llm]
+provider = "openai"
+model = "gpt-4"
+base_url = "https://api.openai.com/v1"
+max_tokens = 4096
+temperature = 0.1
+timeout = 120
+
+[llm.vision]
+provider = "openai"
+model = "gpt-4-vision-preview"
+base_url = "https://api.openai.com/v1"
+max_tokens = 4096
+temperature = 0.1
+
+[database]
+driver = "postgresql"
+host = "localhost"
+port = 5432
+name = "omd_prod"
+pool_size = 20
+max_overflow = 30
+
+[security]
+cors_origins = ["https://yourdomain.com", "https://www.yourdomain.com"]
+rate_limit_per_minute = 60
+max_request_size = 5242880  # 5MB
+session_timeout = 1800
+
+[logging]
+level = "INFO"
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+file_path = "/var/log/omd/omd.log"
+max_file_size = 104857600  # 100MB
+backup_count = 10
+json_logs = true
+

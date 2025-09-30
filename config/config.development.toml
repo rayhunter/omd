@@ -1,0 +1,55 @@
+# Development Environment Configuration
+# This file contains development-specific settings for the OMD project
+
+[app]
+environment = "development"
+debug = true
+version = "1.0.0-dev"
+host = "localhost"
+port = 8501
+workers = 1
+max_steps = 10
+request_timeout = 300
+enable_sandbox = true
+
+# Feature flags for development
+enable_dspy = true
+enable_mcp = true
+enable_metrics = true
+enable_tracing = true
+
+[llm]
+provider = "openai"
+model = "gpt-3.5-turbo"
+base_url = "https://api.openai.com/v1"
+max_tokens = 2048
+temperature = 0.1
+timeout = 60
+
+[llm.vision]
+provider = "openai"
+model = "gpt-4-vision-preview"
+base_url = "https://api.openai.com/v1"
+max_tokens = 2048
+temperature = 0.1
+
+[database]
+driver = "sqlite"
+url = "sqlite:///./omd_dev.db"
+pool_size = 5
+max_overflow = 10
+
+[security]
+cors_origins = ["*"]
+rate_limit_per_minute = 100
+max_request_size = 10485760  # 10MB
+session_timeout = 3600
+
+[logging]
+level = "DEBUG"
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+file_path = "logs/omd_dev.log"
+max_file_size = 10485760  # 10MB
+backup_count = 5
+json_logs = false
+

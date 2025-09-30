@@ -1,0 +1,84 @@
+{
+  "default_mcp_server": "llama-mcp",
+  "servers": {
+    "llama-mcp": {
+      "name": "llama-mcp",
+      "type": "ollama",
+      "url": "http://localhost:11434",
+      "model": "gemma2:2b",
+      "timeout": 60,
+      "max_tokens": 1024,
+      "temperature": 0.7,
+      "enabled": true,
+      "capabilities": ["general_knowledge", "reasoning", "analysis"],
+      "description": "Local Ollama model for general knowledge and reasoning"
+    },
+    "web-search": {
+      "name": "web-search",
+      "type": "web_search",
+      "url": "https://api.duckduckgo.com",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.5,
+      "enabled": true,
+      "capabilities": ["current_events", "web_search", "real_time_data"],
+      "description": "DuckDuckGo web search for current information"
+    },
+    "wikipedia": {
+      "name": "wikipedia",
+      "type": "wikipedia",
+      "url": "https://en.wikipedia.org/api/rest_v1",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["encyclopedic_knowledge", "factual_data", "historical_info"],
+      "description": "Wikipedia API for encyclopedic knowledge"
+    },
+    "arxiv": {
+      "name": "arxiv",
+      "type": "arxiv",
+      "url": "http://export.arxiv.org/api/query",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["scientific_research", "academic_papers", "latest_research"],
+      "description": "arXiv API for scientific papers and research"
+    },
+    "finance": {
+      "name": "finance",
+      "type": "finance",
+      "url": "https://query1.finance.yahoo.com/v8/finance/chart",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["financial_data", "stock_prices", "market_info"],
+      "description": "Yahoo Finance API for financial data"
+    },
+    "news-api": {
+      "name": "news-api",
+      "type": "news",
+      "url": "https://newsapi.org/v2",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.5,
+      "enabled": false,
+      "capabilities": ["breaking_news", "current_events", "global_news"],
+      "description": "News API for current news and events (requires API key)"
+    },
+    "github": {
+      "name": "github",
+      "type": "github",
+      "url": "https://api.github.com",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.3,
+      "enabled": false,
+      "capabilities": ["code_search", "repositories", "development_trends"],
+      "description": "GitHub API for code search and repository information (requires token)"
+    }
+  }
+}
+

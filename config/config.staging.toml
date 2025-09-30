@@ -1,0 +1,57 @@
+# Staging Environment Configuration
+# This file contains staging-specific settings for the OMD project
+
+[app]
+environment = "staging"
+debug = false
+version = "1.0.0-staging"
+host = "0.0.0.0"
+port = 8501
+workers = 2
+max_steps = 10
+request_timeout = 300
+enable_sandbox = true
+
+# Feature flags for staging
+enable_dspy = true
+enable_mcp = true
+enable_metrics = true
+enable_tracing = true
+
+[llm]
+provider = "openai"
+model = "gpt-3.5-turbo"
+base_url = "https://api.openai.com/v1"
+max_tokens = 2048
+temperature = 0.1
+timeout = 90
+
+[llm.vision]
+provider = "openai"
+model = "gpt-4-vision-preview"
+base_url = "https://api.openai.com/v1"
+max_tokens = 2048
+temperature = 0.1
+
+[database]
+driver = "postgresql"
+host = "staging-db.internal"
+port = 5432
+name = "omd_staging"
+pool_size = 10
+max_overflow = 20
+
+[security]
+cors_origins = ["https://staging.yourdomain.com"]
+rate_limit_per_minute = 80
+max_request_size = 10485760  # 10MB
+session_timeout = 2400
+
+[logging]
+level = "INFO"
+format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+file_path = "/var/log/omd/omd_staging.log"
+max_file_size = 52428800  # 50MB
+backup_count = 7
+json_logs = true
+
