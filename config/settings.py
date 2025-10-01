@@ -17,8 +17,8 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from pydantic import BaseSettings, Field, validator, root_validator
-from pydantic.env_settings import SettingsSourceCallable
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -56,23 +56,26 @@ class LLMConfig(BaseSettings):
     api_version: Optional[str] = Field(None, description="Azure API version")
     deployment_id: Optional[str] = Field(None, description="Azure deployment ID")
     
-    @validator('api_key', pre=True)
-    def validate_api_key(cls, v, values):
+    @field_validator('api_key', mode='before')
+    @classmethod
+    def validate_api_key(cls, v, info):
         """Validate API key based on provider."""
-        provider = values.get('provider')
-        if provider in [LLMProvider.OPENAI, LLMProvider.ANTHROPIC] and not v:
-            # Try to get from environment
-            env_key = f"{provider.upper()}_API_KEY"
-            v = os.getenv(env_key)
-            if not v and os.getenv('ENVIRONMENT', 'development') == 'production':
-                raise ValueError(f"API key required for {provider} in production")
+        if info.data:
+            provider = info.data.get('provider')
+            if provider in [LLMProvider.OPENAI, LLMProvider.ANTHROPIC] and not v:
+                # Try to get from environment
+                env_key = f"{provider.upper()}_API_KEY"
+                v = os.getenv(env_key)
+                if not v and os.getenv('ENVIRONMENT', 'development') == 'production':
+                    raise ValueError(f"API key required for {provider} in production")
         return v
     
-    @validator('base_url', pre=True)
-    def set_default_base_url(cls, v, values):
+    @field_validator('base_url', mode='before')
+    @classmethod
+    def set_default_base_url(cls, v, info):
         """Set default base URL based on provider."""
-        if v is None:
-            provider = values.get('provider')
+        if v is None and info.data:
+            provider = info.data.get('provider')
             if provider == LLMProvider.OPENAI:
                 return "https://api.openai.com/v1"
             elif provider == LLMProvider.ANTHROPIC:
@@ -173,6 +176,43 @@ class LoggingConfig(BaseSettings):
         return v.upper()
 
 
+class LangfuseConfig(BaseSettings):
+    """Langfuse observability configuration."""
+    
+    enabled: bool = Field(False, description="Enable Langfuse tracing")
+    public_key: Optional[str] = Field(None, description="Langfuse public API key")
+    secret_key: Optional[str] = Field(None, description="Langfuse secret API key")
+    host: str = Field("https://cloud.langfuse.com", description="Langfuse host URL")
+    
+    # Tracing settings
+    sample_rate: float = Field(1.0, description="Sampling rate for traces (0.0 to 1.0)")
+    flush_at: int = Field(15, description="Number of events to batch before sending")
+    flush_interval: float = Field(0.5, description="Interval in seconds to flush events")
+    
+    # Feature flags
+    trace_llm_calls: bool = Field(True, description="Trace LLM API calls")
+    trace_agent_steps: bool = Field(True, description="Trace agent reasoning steps")
+    trace_mcp_calls: bool = Field(True, description="Trace MCP server calls")
+    
+    # Cost tracking
+    track_costs: bool = Field(True, description="Track and calculate costs")
+    
+    @validator('public_key', 'secret_key', pre=True)
+    def validate_keys(cls, v, field):
+        """Validate Langfuse keys from environment."""
+        if v is None:
+            env_var = f"LANGFUSE_{field.name.upper()}"
+            v = os.getenv(env_var)
+        return v
+    
+    @validator('sample_rate')
+    def validate_sample_rate(cls, v):
+        """Validate sample rate is between 0 and 1."""
+        if not 0.0 <= v <= 1.0:
+            raise ValueError("Sample rate must be between 0.0 and 1.0")
+        return v
+
+
 class AppConfig(BaseSettings):
     """Main application configuration."""
     
@@ -203,6 +243,7 @@ class AppConfig(BaseSettings):
     database: DatabaseConfig = Field(default_factory=DatabaseConfig, description="Database configuration")
     security: SecurityConfig = Field(default_factory=SecurityConfig, description="Security configuration")
     logging: LoggingConfig = Field(default_factory=LoggingConfig, description="Logging configuration")
+    langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig, description="Langfuse observability configuration")
     
     # MCP servers
     mcp_servers: Dict[str, MCPServerConfig] = Field(default_factory=dict, description="MCP server configurations")

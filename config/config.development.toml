@@ -53,3 +53,17 @@ max_file_size = 10485760  # 10MB
 backup_count = 5
 json_logs = false
 
+[langfuse]
+enabled = true
+# Keys should be set in .env file:
+# LANGFUSE_PUBLIC_KEY=pk-lf-...
+# LANGFUSE_SECRET_KEY=sk-lf-...
+host = "https://cloud.langfuse.com"
+sample_rate = 1.0  # Trace 100% of requests in development
+flush_at = 15
+flush_interval = 0.5
+trace_llm_calls = true
+trace_agent_steps = true
+trace_mcp_calls = true
+track_costs = true
+

@@ -1,6 +1,7 @@
 import streamlit as st
 import asyncio
 import sys
+import uuid
 from pathlib import Path
 import time
 from typing import Dict, List, Optional
@@ -8,6 +9,14 @@ from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Import Langfuse integration for session tracking
+try:
+    from langfuse_integration import langfuse_manager
+    LANGFUSE_AVAILABLE = True
+except ImportError:
+    LANGFUSE_AVAILABLE = False
+    langfuse_manager = None
 
 # Configure Streamlit page
 st.set_page_config(
@@ -342,9 +351,35 @@ def test_mcp_servers(query: str, servers: List[str] = None):
     display_multi_server_results(results)
 
 def main():
+    # Initialize Langfuse session tracking
+    if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+        if 'langfuse_session_id' not in st.session_state:
+            # Generate unique session ID for this Streamlit session
+            st.session_state.langfuse_session_id = f"streamlit-{uuid.uuid4().hex[:8]}"
+            st.session_state.langfuse_user_id = "streamlit-user"  # Could be from auth
+            
+            # Set the session in Langfuse
+            langfuse_manager.set_session(
+                st.session_state.langfuse_session_id,
+                user_id=st.session_state.langfuse_user_id
+            )
+    
     # Header
     st.title("🧠 Enhanced Research Agent")
     st.markdown("*Powered by OpenManus + MCP Integration + DSPy*")
+    
+    # Display Langfuse status
+    if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+        with st.sidebar.expander("📊 Observability (Langfuse)", expanded=False):
+            st.success("✅ Langfuse Tracing: ENABLED")
+            st.caption(f"🎯 Session: `{st.session_state.langfuse_session_id}`")
+            st.caption(f"👤 User: `{st.session_state.langfuse_user_id}`")
+            
+            if 'message_count' in st.session_state:
+                st.metric("Messages Tracked", st.session_state.message_count)
+            
+            st.markdown("---")
+            st.caption("🔗 [View Dashboard](https://us.cloud.langfuse.com)")
     
     # Display status and info in sidebar
     display_agent_status()
@@ -410,6 +445,7 @@ def main():
     # Initialize session state for chat history
     if "messages" not in st.session_state:
         st.session_state.messages = []
+        st.session_state.message_count = 0
     
     # Display chat history
     for message in st.session_state.messages:
@@ -418,21 +454,42 @@ def main():
     
     # Chat input
     if prompt := st.chat_input("Enter your research question..."):
+        # Increment message count
+        st.session_state.message_count = st.session_state.get('message_count', 0) + 1
+        
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # Process the query
+        # Process the query with Langfuse tracing
         with st.chat_message("assistant"):
             with st.spinner("🧠 Processing your request..."):
-                # Run async function in sync context
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    result, error = loop.run_until_complete(process_query(prompt))
-                finally:
-                    loop.close()
+                # Wrap processing in Langfuse trace if available
+                if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+                    with langfuse_manager.trace_span(
+                        "streamlit_chat_query",
+                        metadata={
+                            "message_number": st.session_state.message_count,
+                            "query_length": len(prompt)
+                        },
+                        tags=["streamlit", "chat", "user_query"]
+                    ):
+                        # Run async function in sync context
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+                        try:
+                            result, error = loop.run_until_complete(process_query(prompt))
+                        finally:
+                            loop.close()
+                else:
+                    # Run without tracing
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result, error = loop.run_until_complete(process_query(prompt))
+                    finally:
+                        loop.close()
                 
                 if error:
                     error_msg = f"❌ **Error:** {error}"
@@ -444,7 +501,7 @@ def main():
     
     # Alternative form-based input (in case chat input doesn't work well)
     st.markdown("---")
-    st.markdown("### 📝 Alternative Input")
+    st.markdown("📝 Test the Enhanced Agent")
     
     with st.form("query_form", clear_on_submit=True):
         user_input = st.text_area(
@@ -524,7 +581,9 @@ def main():
     st.markdown("---")
     st.markdown("""
     <div style='text-align: center; color: #666;'>
+    <span>&copy;2025 Conceived by LikeSugarAI, powered by OpenManus<br /></span>
     <small>Enhanced Research Agent | OMD: OpenManus + MCP Integration + DSPy</small>
+    <hr />
     </div>
     """, unsafe_allow_html=True)
 
