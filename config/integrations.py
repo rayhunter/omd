@@ -176,11 +176,11 @@ class StreamlitConfigAdapter:
                 "level": config.logging.level,
             },
             "theme": {
-                "primaryColor": "#1f77b4",
-                "backgroundColor": "#ffffff",
-                "secondaryBackgroundColor": "#f0f2f6",
-                "textColor": "#262730",
-                "font": "sans serif",
+                "primaryColor": "#f59e0b",        # Warm amber
+                "backgroundColor": "#fefce8",      # Cream
+                "secondaryBackgroundColor": "#fef9c3",  # Light yellow
+                "textColor": "#292524",           # Warm stone
+                "font": "Manrope",                 # Friendly, rounded modern font
             }
         }
     

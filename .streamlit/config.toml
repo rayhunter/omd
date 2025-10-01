@@ -1,0 +1,34 @@
+# Streamlit Configuration for Enhanced Research Agent
+# "Deep Focus" Theme - Optimized for long research sessions
+
+[theme]
+# Primary color for interactive elements and CTAs
+primaryColor = "#f59e0b"  # Warm amber
+
+# Main background color
+backgroundColor = "#fefce8"  # Cream
+
+# Background color for sidebar and input elements
+secondaryBackgroundColor = "#fef9c3"  # Light yellow
+
+# Text color
+textColor = "#292524"  # Warm stone
+
+# Font family - Manrope is a friendly, rounded modern font
+# Falls back to system fonts if Manrope is not available
+font = "Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
+
+[server]
+# Server configuration
+headless = true
+port = 8501
+enableCORS = true
+enableXsrfProtection = true
+
+[browser]
+# Disable usage stats collection
+gatherUsageStats = false
+
+[logger]
+# Logging level
+level = "info"

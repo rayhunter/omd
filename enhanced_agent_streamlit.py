@@ -17,6 +17,138 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Apply Warm Intelligence theme custom CSS
+st.markdown("""
+<style>
+/* Import Manrope font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+/* Apply Manrope font globally */
+html, body, [class*="css"] {
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Enhanced styling for Warm Intelligence theme */
+.stApp {
+    background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+}
+
+/* Sidebar styling */
+.css-1d391kg {
+    background: linear-gradient(180deg, #fef9c3 0%, #fde68a 100%);
+}
+
+/* Input fields styling */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background-color: #fffbeb;
+    border: 2px solid #fbbf24;
+    color: #292524;
+    font-family: 'Manrope', sans-serif;
+    border-radius: 10px;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+/* Button styling */
+.stButton > button {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.stButton > button:hover {
+    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+}
+
+/* Chat message styling */
+.stChatMessage {
+    background: rgba(254, 252, 232, 0.8);
+    border: 2px solid #fde68a;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+}
+
+/* Expander styling */
+.streamlit-expanderHeader {
+    background: rgba(254, 243, 199, 0.6);
+    border-radius: 10px;
+    font-family: 'Manrope', sans-serif;
+    font-weight: 600;
+    border: 1px solid #fbbf24;
+}
+
+/* Metrics styling */
+.metric-container {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(251, 191, 36, 0.15) 100%);
+    border: 2px solid rgba(245, 158, 11, 0.3);
+    border-radius: 16px;
+    padding: 1rem;
+}
+
+/* Progress bar styling */
+.stProgress > div > div > div {
+    background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+/* Success/error message styling */
+.stSuccess, .stError, .stWarning, .stInfo {
+    border-radius: 12px;
+    font-family: 'Manrope', sans-serif;
+}
+
+/* Header styling */
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+    color: #292524;
+}
+
+/* Custom animation for loading states */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.75; }
+}
+
+.thinking {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Additional warm theme enhancements */
+.stMarkdown {
+    color: #292524;
+}
+
+/* Sidebar text */
+.css-1d391kg .stMarkdown {
+    color: #78350f;
+}
+
+/* Links styling */
+a {
+    color: #d97706;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+a:hover {
+    color: #b45309;
+    text-decoration: underline;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Import the enhanced agent
 try:
     from enhanced_agent.src.app import run_enhanced_agent, dspy_mcp
