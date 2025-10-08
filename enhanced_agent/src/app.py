@@ -5,8 +5,11 @@ from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file (if available)
+try:
+    load_dotenv()
+except ImportError:
+    print("⚠️  python-dotenv not available, using environment variables only")
 
 # Add OpenManus to Python path
 openmanus_path = Path(__file__).parent.parent.parent / "OpenManus"

@@ -16,8 +16,11 @@ import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file (if available)
+try:
+    load_dotenv()
+except ImportError:
+    print("⚠️  python-dotenv not available, using environment variables only")
 
 # Add project root to path for langfuse_integration
 project_root = Path(__file__).parent.parent.parent

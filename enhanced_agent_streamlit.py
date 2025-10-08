@@ -7,8 +7,11 @@ import time
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file (if available)
+try:
+    load_dotenv()
+except ImportError:
+    print("⚠️  python-dotenv not available, using environment variables only")
 
 # Import Langfuse integration for session tracking
 try:
@@ -17,6 +20,7 @@ try:
 except ImportError:
     LANGFUSE_AVAILABLE = False
     langfuse_manager = None
+    print("⚠️  Langfuse integration not available")
 
 # Configure Streamlit page
 st.set_page_config(

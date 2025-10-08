@@ -1,0 +1,23 @@
+# Core Streamlit and web dependencies
+streamlit>=1.50.0
+python-dotenv>=1.1.1
+
+# DSPy and AI dependencies
+dspy-ai>=3.0.0
+openai>=1.66.0
+
+# Langfuse for observability
+langfuse>=3.6.0
+
+# Data processing and utilities
+requests>=2.32.0
+pydantic>=2.11.0
+loguru>=0.7.0
+
+# Optional: Docker support (may not work in Streamlit Cloud)
+# docker>=7.1.0
+
+# Additional dependencies that might be needed
+pathlib2>=2.3.7
+typing-extensions>=4.0.0
+asyncio-mqtt>=0.16.0
