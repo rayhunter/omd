@@ -99,6 +99,9 @@ class DSPyMCPIntegration:
             elif "gemma" in model_name.lower() or "llama" in model_name.lower() or "qwen" in model_name.lower():
                 # For Ollama models, use the ollama/ prefix
                 model_path = f"ollama/{model_name}"
+            elif "phi" in model_name.lower() or "tinyllama" in model_name.lower():
+                # For Hugging Face models, use the huggingface/ prefix
+                model_path = f"huggingface/{model_name}"
             else:
                 # For other models (Ollama, etc.)
                 model_path = model_name
