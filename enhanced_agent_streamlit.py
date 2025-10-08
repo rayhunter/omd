@@ -5,16 +5,15 @@ import uuid
 from pathlib import Path
 import time
 from typing import Dict, List, Optional
-# Load environment variables from .env file (if available)
+# Load environment variables from .env file (if available locally)
+# Streamlit Cloud uses secrets.toml instead of .env
 try:
     from dotenv import load_dotenv
     load_dotenv()
     print("✅ Environment variables loaded from .env file")
 except ImportError:
-    print("⚠️  python-dotenv not available, using environment variables only")
-    # Define a dummy load_dotenv function to prevent errors
-    def load_dotenv():
-        pass
+    print("⚠️  python-dotenv not available, using Streamlit secrets only")
+    pass
 
 # Load Streamlit secrets (for cloud deployment)
 try:

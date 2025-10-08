@@ -1,6 +1,6 @@
 # Core Streamlit and web dependencies
 streamlit>=1.50.0
-python-dotenv>=1.1.1
+python-dotenv==1.0.1
 
 # DSPy and AI dependencies
 dspy-ai>=3.0.0

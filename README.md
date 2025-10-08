@@ -91,6 +91,12 @@ print(answer)
 
 ## 📖 Documentation
 
+## Additionally
+
+- **cd /Users/raymondhunter/LocalProjects/10workspaceOct25/omd**
+- **source virtual/bin/activate**
+- **streamlit run enhanced_agent_streamlit.py**
+
 ### Core Documentation
 
 - **[Quick Start Guide](docs/QUICK_START.md)** - Detailed setup and usage examples
