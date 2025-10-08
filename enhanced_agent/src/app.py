@@ -28,7 +28,7 @@ config = Config()
 # Initialize DSPy+MCP integration
 try:
     dspy_mcp = DSPyMCPIntegration(
-        llm_model="gpt-3.5-turbo",  # Can be configured via environment
+        llm_model="gemma2:2b",  # Using local Ollama model
         dspy_cache=True
     )
     print("✅ DSPy+MCP integration initialized successfully")

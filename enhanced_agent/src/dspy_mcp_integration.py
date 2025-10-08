@@ -93,6 +93,9 @@ class DSPyMCPIntegration:
             elif "gemini" in model_name.lower():
                 # For Google models
                 model_path = f"google/{model_name}"
+            elif "gemma" in model_name.lower() or "llama" in model_name.lower() or "qwen" in model_name.lower():
+                # For Ollama models, use the ollama/ prefix
+                model_path = f"ollama/{model_name}"
             else:
                 # For other models (Ollama, etc.)
                 model_path = model_name

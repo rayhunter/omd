@@ -39,7 +39,7 @@ def test_dspy_integration():
         
         # Test that we can create the integration
         print("\n📦 Creating DSPyMCPIntegration instance...")
-        integration = DSPyMCPIntegration(llm_model="gpt-3.5-turbo")
+        integration = DSPyMCPIntegration(llm_model="gemma2:2b")
         print("✅ DSPyMCPIntegration created")
         
         # Test simple query analysis (this should create traces)
