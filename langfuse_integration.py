@@ -11,10 +11,23 @@ import functools
 from typing import Optional, Dict, Any, Callable
 from contextlib import contextmanager
 import asyncio
-from dotenv import load_dotenv
 
-# Load environment
-load_dotenv()
+# Load environment variables from .env file (if available)
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # Streamlit Cloud and other environments may not have dotenv
+    # Will use environment variables or Streamlit secrets instead
+    pass
+
+# Import config helper for cloud/local environment compatibility
+try:
+    from enhanced_agent.src.config_helper import get_config_value
+except ImportError:
+    # Fallback if config_helper not available
+    def get_config_value(key: str, default: Optional[str] = None) -> Optional[str]:
+        return os.getenv(key, default)
 
 # Try to import Langfuse
 try:
@@ -52,30 +65,30 @@ class LangfuseManager:
             return
         
         # Check if enabled
-        enabled_str = os.getenv('LANGFUSE_ENABLED', 'true').lower()
+        enabled_str = get_config_value('LANGFUSE_ENABLED', 'true').lower()
         self._enabled = enabled_str in ('true', '1', 'yes')
-        
+
         if not self._enabled:
             print("ℹ️  Langfuse disabled via configuration")
             return
-        
+
         try:
-            public_key = os.getenv('LANGFUSE_PUBLIC_KEY')
-            secret_key = os.getenv('LANGFUSE_SECRET_KEY')
-            host = os.getenv('LANGFUSE_HOST', 'https://cloud.langfuse.com')
-            
+            public_key = get_config_value('LANGFUSE_PUBLIC_KEY')
+            secret_key = get_config_value('LANGFUSE_SECRET_KEY')
+            host = get_config_value('LANGFUSE_HOST', 'https://cloud.langfuse.com')
+
             if not public_key or not secret_key:
                 print("⚠️  Langfuse keys not configured. Tracing disabled.")
                 self._enabled = False
                 return
-            
+
             self._client = Langfuse(
                 public_key=public_key,
                 secret_key=secret_key,
                 host=host,
-                debug=os.getenv('DEBUG', 'false').lower() == 'true',
-                flush_at=int(os.getenv('LANGFUSE_FLUSH_AT', '15')),
-                flush_interval=float(os.getenv('LANGFUSE_FLUSH_INTERVAL', '0.5')),
+                debug=get_config_value('DEBUG', 'false').lower() == 'true',
+                flush_at=int(get_config_value('LANGFUSE_FLUSH_AT', '15')),
+                flush_interval=float(get_config_value('LANGFUSE_FLUSH_INTERVAL', '0.5')),
             )
             
             print(f"✅ Langfuse initialized: {host}")
