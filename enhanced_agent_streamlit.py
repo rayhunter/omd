@@ -5,13 +5,39 @@ import uuid
 from pathlib import Path
 import time
 from typing import Dict, List, Optional
-from dotenv import load_dotenv
-
 # Load environment variables from .env file (if available)
 try:
+    from dotenv import load_dotenv
     load_dotenv()
+    print("✅ Environment variables loaded from .env file")
 except ImportError:
     print("⚠️  python-dotenv not available, using environment variables only")
+    # Define a dummy load_dotenv function to prevent errors
+    def load_dotenv():
+        pass
+
+# Load Streamlit secrets (for cloud deployment)
+try:
+    import streamlit as st
+    # Streamlit secrets are automatically available in cloud
+    if hasattr(st, 'secrets') and st.secrets:
+        print("✅ Streamlit secrets loaded for cloud deployment")
+except Exception as e:
+    print(f"⚠️  Streamlit secrets not available: {e}")
+
+# Import configuration helper
+try:
+    from enhanced_agent.src.config_helper import is_cloud_environment, get_openai_api_key, get_langfuse_config
+    print("✅ Configuration helper loaded")
+except ImportError as e:
+    print(f"⚠️  Configuration helper not available: {e}")
+    # Define fallback functions
+    def is_cloud_environment():
+        return False
+    def get_openai_api_key():
+        return None
+    def get_langfuse_config():
+        return {}
 
 # Import Langfuse integration for session tracking
 try:

@@ -14,10 +14,9 @@ requests>=2.32.0
 pydantic>=2.11.0
 loguru>=0.7.0
 
-# Optional: Docker support (may not work in Streamlit Cloud)
-# docker>=7.1.0
-
 # Additional dependencies that might be needed
 pathlib2>=2.3.7
 typing-extensions>=4.0.0
-asyncio-mqtt>=0.16.0
+
+# Optional: Docker support (may not work in Streamlit Cloud)
+# docker>=7.1.0

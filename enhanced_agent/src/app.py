@@ -3,13 +3,15 @@ from typing import Optional
 import sys
 from pathlib import Path
 import os
-from dotenv import load_dotenv
-
 # Load environment variables from .env file (if available)
 try:
+    from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     print("⚠️  python-dotenv not available, using environment variables only")
+    # Define a dummy load_dotenv function to prevent errors
+    def load_dotenv():
+        pass
 
 # Add OpenManus to Python path
 openmanus_path = Path(__file__).parent.parent.parent / "OpenManus"
@@ -28,10 +30,19 @@ from app.schema import Message
 # Configure OpenManus - Config is a singleton that auto-loads
 config = Config()
 
+# Import configuration helper
+from .config_helper import get_model_config, is_cloud_environment
+
+# Get appropriate model for current environment
+model_name = get_model_config()
+environment = "cloud" if is_cloud_environment() else "local"
+print(f"🌍 Environment: {environment}")
+print(f"🤖 Using model: {model_name}")
+
 # Initialize DSPy+MCP integration
 try:
     dspy_mcp = DSPyMCPIntegration(
-        llm_model="gemma2:2b",  # Using local Ollama model
+        llm_model=model_name,
         dspy_cache=True
     )
     print("✅ DSPy+MCP integration initialized successfully")

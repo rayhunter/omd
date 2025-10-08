@@ -14,13 +14,15 @@ from typing import Dict, Any, List, Optional
 import os
 import sys
 from pathlib import Path
-from dotenv import load_dotenv
-
 # Load environment variables from .env file (if available)
 try:
+    from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     print("⚠️  python-dotenv not available, using environment variables only")
+    # Define a dummy load_dotenv function to prevent errors
+    def load_dotenv():
+        pass
 
 # Add project root to path for langfuse_integration
 project_root = Path(__file__).parent.parent.parent
