@@ -158,18 +158,25 @@ a:hover {
 </style>
 """, unsafe_allow_html=True)
 
+# Add the enhanced_agent directory to Python path
+import sys
+from pathlib import Path
+enhanced_agent_path = Path(__file__).parent / "enhanced_agent"
+if str(enhanced_agent_path) not in sys.path:
+    sys.path.insert(0, str(enhanced_agent_path))
+
 # Import the enhanced agent
 try:
-    from enhanced_agent.src.app import run_enhanced_agent, dspy_mcp
+    from src.app import run_enhanced_agent, dspy_mcp
     # mcp_client might not be available if dspy_mcp is working
     try:
-        from enhanced_agent.src.app import mcp_client
+        from src.app import mcp_client
     except ImportError:
         mcp_client = None
     
     # Import the enhanced MCP client for UI features
     try:
-        from enhanced_agent.src.enhanced_mcp_client import EnhancedMCPClient
+        from src.enhanced_mcp_client import EnhancedMCPClient
         enhanced_mcp = EnhancedMCPClient()
     except ImportError:
         enhanced_mcp = None

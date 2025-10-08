@@ -6,7 +6,7 @@ environment = "development"
 debug = true
 version = "1.0.0-dev"
 host = "localhost"
-port = 8501
+port = 8502
 workers = 1
 max_steps = 10
 request_timeout = 300
@@ -56,8 +56,8 @@ json_logs = false
 [langfuse]
 enabled = true
 # Keys should be set in .env file:
-# LANGFUSE_PUBLIC_KEY=pk-lf-...
-# LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_PUBLIC_KEY=pk-lf-83fe83e4-65d2-49ab-b6a3-dcef42097f00
+LANGFUSE_SECRET_KEY=sk-lf-a375adac-b602-4d5f-90e9-8432e779736a
 host = "https://cloud.langfuse.com"
 sample_rate = 1.0  # Trace 100% of requests in development
 flush_at = 15

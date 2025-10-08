@@ -8,14 +8,19 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+# Add OpenManus to Python path
+openmanus_path = Path(__file__).parent.parent.parent / "OpenManus"
+if str(openmanus_path) not in sys.path:
+    sys.path.insert(0, str(openmanus_path))
+
 # Import our integration modules
 from .dspy_mcp_integration import DSPyMCPIntegration
 from .mcp_client import MCPClient
 
 # Import OpenManus components
-from OpenManus.app.agent import ReActAgent
-from OpenManus.app.config import Config
-from OpenManus.app.schema import Message
+from app.agent import ReActAgent
+from app.config import Config
+from app.schema import Message
 
 # Configure OpenManus - Config is a singleton that auto-loads
 config = Config()

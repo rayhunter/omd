@@ -9,8 +9,11 @@ from urllib.parse import quote_plus
 import xml.etree.ElementTree as ET
 
 class EnhancedMCPClient:
-    def __init__(self, config_file: str = "../config/mcp_extended.json"):
+    def __init__(self, config_file: str = None):
         """Initialize Enhanced MCP client with configuration file."""
+        if config_file is None:
+            # Use absolute path to config file
+            config_file = Path(__file__).parent.parent / "config" / "mcp_extended.json"
         self.config = self._load_config(config_file)
         self.default_server = self.config.get("default_server", "llama-mcp")
         self.routing_rules = self.config.get("routing_rules", {})
@@ -18,7 +21,7 @@ class EnhancedMCPClient:
     def _load_config(self, config_file: str) -> Dict[str, Any]:
         """Load MCP configuration from JSON file."""
         try:
-            config_path = Path(__file__).parent / config_file
+            config_path = Path(config_file)
             with open(config_path, 'r') as f:
                 content = f.read()
                 # Replace environment variables

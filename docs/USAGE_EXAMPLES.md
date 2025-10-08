@@ -13,7 +13,7 @@ Based on your current setup (7/8 checks passed), here's exactly how to use the O
 
 ### Option 1: Direct Run (Simplest)
 ```bash
-cd /Users/raymondhunter/LocalProjects/03workspaceMar25/omd
+# From the project root
 python enhanced_agent/main.py
 ```
 

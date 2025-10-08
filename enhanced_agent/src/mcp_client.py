@@ -5,8 +5,11 @@ from typing import Dict, Any, Optional
 from pathlib import Path
 
 class MCPClient:
-    def __init__(self, config_file: str = "../config/mcp.json"):
+    def __init__(self, config_file: str = None):
         """Initialize MCP client with configuration file."""
+        if config_file is None:
+            # Use absolute path to config file
+            config_file = Path(__file__).parent.parent / "config" / "mcp.json"
         self.config = self._load_config(config_file)
         self.default_server = self.config.get("default_server", "llama-mcp")
         
