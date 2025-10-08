@@ -83,27 +83,31 @@ class DSPyMCPIntegration:
     def _setup_dspy(self, model_name: str, enable_cache: bool = True):
         """Setup DSPy with the specified LLM model."""
         try:
-            # Try to use OpenAI model (most common case)
+            # Use the modern DSPy API (3.0+)
             if "gpt" in model_name.lower():
-                lm = dspy.OpenAI(
-                    model=model_name,
-                    max_tokens=1000,
-                    temperature=0.1
-                )
+                # For OpenAI models, use the openai/ prefix
+                model_path = f"openai/{model_name}"
+            elif "claude" in model_name.lower():
+                # For Anthropic models
+                model_path = f"anthropic/{model_name}"
+            elif "gemini" in model_name.lower():
+                # For Google models
+                model_path = f"google/{model_name}"
             else:
-                # Fall back to a generic LLM (could be Ollama, etc.)
-                lm = dspy.LM(
-                    model=model_name,
+                # For other models (Ollama, etc.)
+                model_path = model_name
+            
+            # Configure DSPy with the modern API
+            dspy.configure(
+                lm=dspy.LM(
+                    model=model_path,
                     max_tokens=1000,
                     temperature=0.1
-                )
-                
-            dspy.settings.configure(
-                lm=lm,
+                ),
                 cache_turn_on=enable_cache
             )
             
-            print(f"✅ DSPy configured with {model_name}")
+            print(f"✅ DSPy configured with {model_name} (using {model_path})")
             
         except Exception as e:
             print(f"⚠️  Warning: Could not configure DSPy with {model_name}: {e}")
