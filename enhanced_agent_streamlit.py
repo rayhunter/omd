@@ -475,6 +475,87 @@ def main():
                     else:
                         st.warning("Please select servers in the sidebar")
     
+
+    # Alternative form-based input with progress indicators
+    st.markdown("---")
+
+    with st.expander("📝 Detailed Research Form (Advanced)", expanded=False):
+        st.caption("Use this form for longer queries with visual progress indicators and download options")
+
+        with st.form("query_form", clear_on_submit=True):
+            user_input = st.text_area(
+                "Enter your research question:",
+                height=100,
+                placeholder="What would you like to research today?"
+            )
+
+            col1, col2, col3 = st.columns([1, 1, 2])
+
+            with col1:
+                submitted = st.form_submit_button("🚀 Process Query", type="primary")
+
+            if submitted and user_input:
+                # Add to chat history
+                st.session_state.messages.append({"role": "user", "content": user_input})
+
+                # Process query
+                with st.spinner("🧠 Enhanced agent is thinking..."):
+                    # Create progress bar
+                    progress_bar = st.progress(0)
+                    status_text = st.empty()
+
+                    # Simulate processing steps
+                    steps = [
+                        "🔍 Analyzing query structure...",
+                        "📊 Gathering information via MCP...",
+                        "🧠 Processing with DSPy reasoning...",
+                        "⚙️ Synthesizing response...",
+                        "✅ Finalizing result..."
+                    ]
+
+                    for i, step in enumerate(steps):
+                        status_text.text(step)
+                        progress_bar.progress((i + 1) / len(steps))
+                        time.sleep(0.5)  # Visual delay for better UX
+
+                    # Run the actual query
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        result, error = loop.run_until_complete(process_query(user_input))
+                    finally:
+                        loop.close()
+
+                    # Clear progress indicators
+                    progress_bar.empty()
+                    status_text.empty()
+
+                    if error:
+                        st.error(f"❌ **Error:** {error}")
+                        st.session_state.messages.append({"role": "assistant", "content": f"❌ **Error:** {error}"})
+                    else:
+                        st.success("✅ **Response generated successfully!**")
+
+                        # Display the result in a nice format
+                        st.markdown("### 🎯 Enhanced Agent Response:")
+                        st.markdown(result)
+
+                        # Add to chat history
+                        st.session_state.messages.append({"role": "assistant", "content": result})
+
+                        # Store the result for download outside the form
+                        st.session_state.last_result = result
+
+        # Download button outside the form
+        if hasattr(st.session_state, 'last_result') and st.session_state.last_result:
+            st.download_button(
+                label="📄 Download Last Response",
+                data=st.session_state.last_result,
+                file_name=f"research_response_{int(time.time())}.md",
+                mime="text/markdown",
+                key="download_last_response"
+            )
+    
     # Chat interface
     st.markdown("---")
     
@@ -535,83 +616,7 @@ def main():
                     st.markdown(result)
                     st.session_state.messages.append({"role": "assistant", "content": result})
     
-    # Alternative form-based input (in case chat input doesn't work well)
-    st.markdown("---")
-    st.markdown("📝 Test the Enhanced Agent")
-    
-    with st.form("query_form", clear_on_submit=True):
-        user_input = st.text_area(
-            "Enter your research question:", 
-            height=100,
-            placeholder="What would you like to research today?"
-        )
-        
-        col1, col2, col3 = st.columns([1, 1, 2])
-        
-        with col2:
-            submitted = st.form_submit_button("🚀 Process Query", type="primary")
-        
-        if submitted and user_input:
-            # Add to chat history
-            st.session_state.messages.append({"role": "user", "content": user_input})
-            
-            # Process query
-            with st.spinner("🧠 Enhanced agent is thinking..."):
-                # Create progress bar
-                progress_bar = st.progress(0)
-                status_text = st.empty()
-                
-                # Simulate processing steps
-                steps = [
-                    "🔍 Analyzing query structure...",
-                    "📊 Gathering information via MCP...", 
-                    "🧠 Processing with DSPy reasoning...",
-                    "⚙️ Synthesizing response...",
-                    "✅ Finalizing result..."
-                ]
-                
-                for i, step in enumerate(steps):
-                    status_text.text(step)
-                    progress_bar.progress((i + 1) / len(steps))
-                    time.sleep(0.5)  # Visual delay for better UX
-                
-                # Run the actual query
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    result, error = loop.run_until_complete(process_query(user_input))
-                finally:
-                    loop.close()
-                
-                # Clear progress indicators
-                progress_bar.empty()
-                status_text.empty()
-                
-                if error:
-                    st.error(f"❌ **Error:** {error}")
-                    st.session_state.messages.append({"role": "assistant", "content": f"❌ **Error:** {error}"})
-                else:
-                    st.success("✅ **Response generated successfully!**")
-                    
-                    # Display the result in a nice format
-                    st.markdown("### 🎯 Enhanced Agent Response:")
-                    st.markdown(result)
-                    
-                    # Add to chat history
-                    st.session_state.messages.append({"role": "assistant", "content": result})
-                    
-                    # Store the result for download outside the form
-                    st.session_state.last_result = result
-    
-    # Download button outside the form
-    if hasattr(st.session_state, 'last_result') and st.session_state.last_result:
-        st.download_button(
-            label="📄 Download Last Response",
-            data=st.session_state.last_result,
-            file_name=f"research_response_{int(time.time())}.md",
-            mime="text/markdown",
-            key="download_last_response"
-        )
+   
     
     # Footer
     st.markdown("---")
