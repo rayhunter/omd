@@ -21,7 +21,7 @@ font = "Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helveti
 [server]
 # Server configuration
 headless = true
-port = 8502
+port = 8503
 enableCORS = true
 enableXsrfProtection = true
 

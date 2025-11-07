@@ -223,7 +223,7 @@ class AppConfig(BaseSettings):
     
     # Server settings
     host: str = Field("localhost", description="Server host")
-    port: int = Field(8502, description="Server port")
+    port: int = Field(8503, description="Server port")
     workers: int = Field(1, description="Number of worker processes")
     
     # Application settings
