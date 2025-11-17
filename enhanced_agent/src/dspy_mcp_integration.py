@@ -46,49 +46,55 @@ except ImportError:
 class DSPyMCPIntegration:
     """
     Integration class that orchestrates DSPy structured reasoning with MCP information gathering.
-    
+
     This class provides the bridge between:
     1. DSPy's structured reasoning capabilities
     2. MCP's information gathering from external sources
     3. Intelligent query optimization and multi-step research flows
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  mcp_config_path: str = None,
                  llm_model: str = "gpt-3.5-turbo",
-                 dspy_cache: bool = True):
+                 dspy_cache: bool = True,
+                 enable_step_cache: bool = True):
         """
         Initialize the DSPy-MCP integration.
-        
+
         Args:
             mcp_config_path: Path to MCP configuration file
             llm_model: LLM model to use for DSPy reasoning
             dspy_cache: Whether to enable DSPy caching
+            enable_step_cache: Whether to cache intermediate steps for failure recovery
         """
-        
+
         # Initialize MCP client
         if mcp_config_path is None:
             mcp_config_path = str(Path(__file__).parent.parent / "config" / "mcp.json")
-        
+
         self.mcp_client = MCPClient(config_file=mcp_config_path)
-        
+
         # Initialize DSPy
         self._setup_dspy(llm_model, dspy_cache)
-        
+
         # Initialize DSPy modules
         self.research_pipeline = StructuredResearchPipeline()
         self.quick_analyzer = QuickAnalysis()
-        
+
         # Configuration and state
         self.config = {
             'max_mcp_queries': 3,  # Maximum number of MCP queries per research session
             'enable_multi_step': True,  # Enable multi-step research
             'confidence_threshold': 0.7,  # Minimum confidence for direct answers
             'max_concurrent_queries': 3,  # Maximum concurrent MCP queries
+            'enable_step_cache': enable_step_cache,  # Enable step-level caching
         }
 
         # Semaphore for controlling concurrent MCP queries
         self._mcp_semaphore = asyncio.Semaphore(self.config['max_concurrent_queries'])
+
+        # Step-level cache for failure recovery (query -> {analysis, external_info})
+        self._step_cache = {} if enable_step_cache else None
         
     def _setup_dspy(self, model_name: str, enable_cache: bool = True):
         """Setup DSPy with the specified LLM model."""
@@ -314,20 +320,32 @@ class DSPyMCPIntegration:
     async def process_research_query(self, user_query: str) -> ResearchPiplineResult:
         """
         Complete research processing using DSPy + MCP integration.
-        
+
         This method orchestrates:
-        1. DSPy query analysis 
+        1. DSPy query analysis
         2. MCP information gathering
         3. DSPy information synthesis
         4. DSPy response generation
-        
+
         Args:
             user_query: The user's research question
-            
+
         Returns:
             Complete ResearchPiplineResult with structured outputs
         """
-        
+
+        # Initialize step results before try block for safe fallback access
+        analysis = None
+        external_info = None
+
+        # Check for cached intermediate results
+        cache_key = user_query[:100]  # Use truncated query as cache key
+        if self._step_cache is not None and cache_key in self._step_cache:
+            cached = self._step_cache[cache_key]
+            analysis = cached.get('analysis')
+            external_info = cached.get('external_info')
+            print(f"♻️  Found cached intermediate results for query")
+
         # Use proper with statement for context management
         if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
             with langfuse_manager.trace_span(
@@ -341,13 +359,21 @@ class DSPyMCPIntegration:
                 try:
                     pipeline_start = time.time()
                     print(f"🚀 Starting DSPy+MCP research pipeline for: '{user_query[:60]}...'")
-                    
-                    # Step 1: Analyze query with DSPy
-                    analysis = await self.analyze_query_structure(user_query)
-                    
-                    # Step 2: Gather information via MCP based on DSPy analysis  
-                    external_info = await self.gather_information(analysis['search_terms'])
-                    
+
+                    # Step 1: Analyze query with DSPy (skip if cached)
+                    if analysis is None:
+                        analysis = await self.analyze_query_structure(user_query)
+                        # Cache analysis step
+                        if self._step_cache is not None:
+                            self._step_cache[cache_key] = {'analysis': analysis}
+
+                    # Step 2: Gather information via MCP based on DSPy analysis (skip if cached)
+                    if external_info is None:
+                        external_info = await self.gather_information(analysis['search_terms'])
+                        # Cache external_info step
+                        if self._step_cache is not None:
+                            self._step_cache[cache_key]['external_info'] = external_info
+
                     # Step 3: Process everything through DSPy structured pipeline
                     print("🧠 Processing through DSPy structured reasoning pipeline...")
                     synthesis_start = time.time()
@@ -356,9 +382,13 @@ class DSPyMCPIntegration:
                         external_info=external_info
                     )
                     synthesis_time = (time.time() - synthesis_start) * 1000
-                    
+
                     total_time = (time.time() - pipeline_start) * 1000
-                    
+
+                    # Clear cache after successful completion
+                    if self._step_cache is not None and cache_key in self._step_cache:
+                        del self._step_cache[cache_key]
+
                     # Update span with complete result
                     if span:
                         span.update(
@@ -371,72 +401,102 @@ class DSPyMCPIntegration:
                             },
                             tags=["complete", result.query_type]
                         )
-                    
+
                     print("✅ DSPy+MCP pipeline completed successfully")
                     return result
-                    
+
                 except Exception as e:
                     print(f"❌ Error in DSPy pipeline: {e}")
-                    
-                    # Create a fallback result
+
+                    # Prepare safe fallback defaults
+                    fallback_defaults = {
+                        'main_topic': user_query[:50] + "..." if len(user_query) > 50 else user_query,
+                        'sub_topics': [user_query],
+                        'query_type': 'general',
+                        'information_needs': 'General information about the topic',
+                        'search_terms': [user_query]
+                    }
+
+                    # Create a fallback result using cached or default values
                     return ResearchPiplineResult(
-                        main_topic=analysis.get('main_topic', 'Unknown') if 'analysis' in locals() else user_query[:50],
-                        sub_topics=analysis.get('sub_topics', [user_query]) if 'analysis' in locals() else [user_query],
-                        query_type=analysis.get('query_type', 'general') if 'analysis' in locals() else 'general',
-                        information_needs=analysis.get('information_needs', 'General information') if 'analysis' in locals() else 'General information',
-                        search_terms=analysis.get('search_terms', [user_query]) if 'analysis' in locals() else [user_query],
+                        main_topic=(analysis or fallback_defaults).get('main_topic', fallback_defaults['main_topic']),
+                        sub_topics=(analysis or fallback_defaults).get('sub_topics', fallback_defaults['sub_topics']),
+                        query_type=(analysis or fallback_defaults).get('query_type', fallback_defaults['query_type']),
+                        information_needs=(analysis or fallback_defaults).get('information_needs', fallback_defaults['information_needs']),
+                        search_terms=(analysis or fallback_defaults).get('search_terms', fallback_defaults['search_terms']),
                         key_insights="Analysis completed with limited DSPy processing due to error.",
                         relevance_assessment="Unable to fully assess relevance.",
                         gaps_identified="Processing error prevented full gap analysis.",
-                        synthesized_context=f"Query: {user_query}\nExternal Info: {external_info[:500] if 'external_info' in locals() else 'N/A'}...",
+                        synthesized_context=f"Query: {user_query}\nExternal Info: {external_info[:500] if external_info else 'N/A'}...",
                         direct_answer="I encountered an error during structured processing, but gathered some information.",
-                        supporting_details=external_info[:1000] + "..." if 'external_info' in locals() and len(external_info) > 1000 else external_info if 'external_info' in locals() else "No information gathered",
+                        supporting_details=external_info[:1000] + "..." if external_info and len(external_info) > 1000 else external_info or "No information gathered",
                         actionable_insights="Review the gathered information and try reformulating the query.",
                         confidence_level="low - processing error occurred",
-                        external_info=external_info if 'external_info' in locals() else ""
+                        external_info=external_info or ""
                     )
         else:
             # No tracing - just run the pipeline
             try:
                 pipeline_start = time.time()
                 print(f"🚀 Starting DSPy+MCP research pipeline for: '{user_query[:60]}...'")
-                
-                # Step 1: Analyze query with DSPy
-                analysis = await self.analyze_query_structure(user_query)
-                
-                # Step 2: Gather information via MCP based on DSPy analysis  
-                external_info = await self.gather_information(analysis['search_terms'])
-                
+
+                # Step 1: Analyze query with DSPy (skip if cached)
+                if analysis is None:
+                    analysis = await self.analyze_query_structure(user_query)
+                    # Cache analysis step
+                    if self._step_cache is not None:
+                        self._step_cache[cache_key] = {'analysis': analysis}
+
+                # Step 2: Gather information via MCP based on DSPy analysis (skip if cached)
+                if external_info is None:
+                    external_info = await self.gather_information(analysis['search_terms'])
+                    # Cache external_info step
+                    if self._step_cache is not None:
+                        self._step_cache[cache_key]['external_info'] = external_info
+
                 # Step 3: Process everything through DSPy structured pipeline
                 print("🧠 Processing through DSPy structured reasoning pipeline...")
                 result = self.research_pipeline(
                     user_query=user_query,
                     external_info=external_info
                 )
-                
+
+                # Clear cache after successful completion
+                if self._step_cache is not None and cache_key in self._step_cache:
+                    del self._step_cache[cache_key]
+
                 print("✅ DSPy+MCP pipeline completed successfully")
                 return result
-                
+
             except Exception as e:
                 print(f"❌ Error in DSPy pipeline: {e}")
-            
-            # Create a fallback result
-            return ResearchPiplineResult(
-                main_topic=analysis['main_topic'],
-                sub_topics=analysis['sub_topics'],
-                query_type=analysis['query_type'],
-                information_needs=analysis['information_needs'],
-                search_terms=analysis['search_terms'],
-                key_insights="Analysis completed with limited DSPy processing due to error.",
-                relevance_assessment="Unable to fully assess relevance.",
-                gaps_identified="Processing error prevented full gap analysis.",
-                synthesized_context=f"Query: {user_query}\nExternal Info: {external_info[:500]}...",
-                direct_answer="I encountered an error during structured processing, but gathered some information.",
-                supporting_details=external_info[:1000] + "..." if len(external_info) > 1000 else external_info,
-                actionable_insights="Review the gathered information and try reformulating the query.",
-                confidence_level="low - processing error occurred",
-                external_info=external_info
-            )
+
+                # Prepare safe fallback defaults
+                fallback_defaults = {
+                    'main_topic': user_query[:50] + "..." if len(user_query) > 50 else user_query,
+                    'sub_topics': [user_query],
+                    'query_type': 'general',
+                    'information_needs': 'General information about the topic',
+                    'search_terms': [user_query]
+                }
+
+                # Create a fallback result using cached or default values
+                return ResearchPiplineResult(
+                    main_topic=(analysis or fallback_defaults).get('main_topic', fallback_defaults['main_topic']),
+                    sub_topics=(analysis or fallback_defaults).get('sub_topics', fallback_defaults['sub_topics']),
+                    query_type=(analysis or fallback_defaults).get('query_type', fallback_defaults['query_type']),
+                    information_needs=(analysis or fallback_defaults).get('information_needs', fallback_defaults['information_needs']),
+                    search_terms=(analysis or fallback_defaults).get('search_terms', fallback_defaults['search_terms']),
+                    key_insights="Analysis completed with limited DSPy processing due to error.",
+                    relevance_assessment="Unable to fully assess relevance.",
+                    gaps_identified="Processing error prevented full gap analysis.",
+                    synthesized_context=f"Query: {user_query}\nExternal Info: {external_info[:500] if external_info else 'N/A'}...",
+                    direct_answer="I encountered an error during structured processing, but gathered some information.",
+                    supporting_details=external_info[:1000] + "..." if external_info and len(external_info) > 1000 else external_info or "No information gathered",
+                    actionable_insights="Review the gathered information and try reformulating the query.",
+                    confidence_level="low - processing error occurred",
+                    external_info=external_info or ""
+                )
     
     def format_research_result(self, result: ResearchPiplineResult) -> str:
         """
