@@ -6,13 +6,10 @@ This script tests the enhanced research agent with actual DSPy structured reason
 """
 
 import asyncio
-import sys
-import os
 from pathlib import Path
 
-# Add enhanced_agent to path
+# Project root - packages should be installed via pip install -e
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "enhanced_agent"))
 
 async def test_dspy_integration():
     """Test the DSPy integration with sample queries."""

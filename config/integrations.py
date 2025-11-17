@@ -6,14 +6,11 @@ with existing OpenManus and enhanced_agent components.
 """
 
 import os
-import sys
 from pathlib import Path
 from typing import Dict, Any, Optional
 
-# Add project paths
+# Project root
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-sys.path.insert(0, str(project_root / "enhanced_agent" / "src"))
 
 from config.settings import get_config, get_llm_config, get_mcp_server_config, config_manager
 

@@ -53,38 +53,50 @@ The repository uses a unified build system with both Makefile and shell scripts:
 ### Individual Project Commands
 
 #### OpenManus Agent Development
-1. **Setup**: 
+1. **Installation**:
+   ```bash
+   # Install as an editable package (recommended for development)
+   pip install -e OpenManus
+   # Or with optional dependencies
+   pip install -e "OpenManus[dev,dspy]"
+   ```
+
+2. **Setup**:
    ```bash
    cp OpenManus/config/config.example.toml OpenManus/config/config.toml
    # Edit config.toml with your LLM API keys
    ```
 
-2. **Installation**: 
-   ```bash
-   cd OpenManus
-   uv venv --python 3.12 && source .venv/bin/activate
-   uv pip install -r requirements.txt
-   # Alternative: pip install -r requirements.txt
-   ```
-
 3. **Running**:
    ```bash
    python OpenManus/main.py          # Basic agent
+   openmanus                         # Using installed command
    python OpenManus/run_flow.py      # Planning flows with timeout (recommended)
    ```
 
-4. **Testing**: 
+4. **Testing**:
    ```bash
    pytest OpenManus/tests/           # All OpenManus tests
    pytest -m "not slow"              # Fast tests only
    ```
 
+5. **Importing in Code**:
+   ```python
+   from openmanus import Manus, ReActAgent
+   from openmanus.config import Config
+   from openmanus.tool import BaseTool
+   ```
+
 #### Enhanced Agent with DSPy+MCP Integration
-1. **Setup**:
+1. **Installation**:
    ```bash
-   cd enhanced_agent
-   pip install -e .
-   pip install dspy-ai>=2.0.0
+   # Install OpenManus first (required dependency)
+   pip install -e OpenManus
+
+   # Install enhanced_agent as an editable package
+   pip install -e enhanced_agent
+   # Or with optional dependencies
+   pip install -e "enhanced_agent[dev]"
    ```
 
 2. **Configuration**:
@@ -99,6 +111,13 @@ The repository uses a unified build system with both Makefile and shell scripts:
    python enhanced_agent/main.py     # Full integration
    ./run_streamlit.sh                # Web interface (recommended)
    python test_dspy_standalone.py    # Test components independently
+   ```
+
+4. **Importing in Code**:
+   ```python
+   from enhanced_agent.src.app import run_enhanced_agent, create_agent
+   from enhanced_agent.src.dspy_mcp_integration import DSPyMCPIntegration
+   from enhanced_agent.src.mcp_client import MCPClient
    ```
 
 ## Architecture Overview
@@ -213,10 +232,15 @@ Configure external information sources via JSON (`enhanced_agent/config/mcp.json
 - Graceful degradation with proper logging
 - Sandbox cleanup on exit
 
-### Package Management
+### Package Management and Installation
+- **Proper Python Packages**: Both OpenManus and enhanced_agent are installable packages with pyproject.toml
+- **Editable Installation**: Install with `pip install -e .` for development (changes reflected immediately)
+- **Clean Imports**: No sys.path manipulation required after installation
+  - OpenManus: `from openmanus import Manus, ReActAgent`
+  - Enhanced Agent: `from enhanced_agent.src.app import run_enhanced_agent`
 - **UV-based Dependencies**: Fast dependency resolution and virtual environment management
-- **Dual Package Layout**: Both OpenManus and enhanced_agent use pyproject.toml with setuptools
 - **Lock Files**: Requirements pinning for reproducible builds (`make lock`)
+- **Dependency Chain**: enhanced_agent depends on openmanus (install openmanus first)
 
 ## Testing and Quality Assurance
 
@@ -245,16 +269,23 @@ pytest enhanced_agent/tests/ # Enhanced agent specific
 
 ### Setting Up Development Environment
 ```bash
-# Quick setup
+# Quick setup (recommended)
 make install
 
-# Manual setup
-./scripts/dev.sh setup
+# Manual setup - install both packages in editable mode
+pip install -e OpenManus
+pip install -e enhanced_agent
 
-# Project-specific setup
-cd OpenManus && uv venv --python 3.12 && source .venv/bin/activate
-uv pip install -r requirements.txt
+# With all optional dependencies
+pip install -e "OpenManus[dev,dspy]"
+pip install -e "enhanced_agent[dev]"
+
+# Alternative: using uv for faster installs
+uv pip install -e OpenManus
+uv pip install -e enhanced_agent
 ```
+
+See [INSTALL.md](INSTALL.md) for detailed installation instructions.
 
 ### Running the Enhanced Research Agent
 ```bash

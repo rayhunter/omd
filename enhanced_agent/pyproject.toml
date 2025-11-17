@@ -1,22 +1,45 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "enhanced_agent"
 version = "0.1.0"
-description = "Enhanced agent package"
-requires-python = ">=3.8"
+description = "Enhanced research agent with DSPy + MCP + OpenManus integration"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Enhanced Agent Contributors"}
+]
+keywords = ["ai", "agent", "research", "dspy", "mcp", "llm"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
 dependencies = [
     "openai>=1.58.1,<1.67.0",
     "requests>=2.31.0",
-    "pathlib>=1.0.1",
-    "typing>=3.7.4.3",
-    "asyncio>=3.4.3"
+    "dspy-ai>=2.3.3",
+    "openmanus",  # Will be installed from local package
+    "streamlit>=1.28.0",
 ]
 
 [project.optional-dependencies]
-# Add any optional dependencies here
+dev = [
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "isort>=5.12.0",
+]
 
 [tool.setuptools]
 packages = {find = {where = ["."]}}

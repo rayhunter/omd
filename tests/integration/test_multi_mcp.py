@@ -3,16 +3,15 @@
 Test script for multiple MCP servers
 """
 
-import sys
 from pathlib import Path
 import asyncio
+import sys
 
-# Add the enhanced_agent src to path
+# Project root - packages should be installed via pip install -e
 project_root = Path(__file__).parent.parent.parent
-sys.path.append(str(project_root / "enhanced_agent" / "src"))
 
 try:
-    from enhanced_mcp_client import EnhancedMCPClient
+    from enhanced_agent.src.enhanced_mcp_client import EnhancedMCPClient
     print("✅ Enhanced MCP Client imported successfully")
 except ImportError as e:
     print(f"❌ Failed to import Enhanced MCP Client: {e}")

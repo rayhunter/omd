@@ -5,12 +5,10 @@ Standalone test for DSPy modules without OpenManus dependencies.
 This script tests just the DSPy components to verify they work independently.
 """
 
-import sys
 from pathlib import Path
 
-# Add enhanced_agent to path
+# Project root - packages should be installed via pip install -e
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root / "enhanced_agent" / "src"))
 
 def test_dspy_imports():
     """Test that we can import DSPy and our modules."""

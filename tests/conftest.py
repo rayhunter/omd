@@ -7,15 +7,12 @@ that can be used across all test files in the project.
 
 import pytest
 import asyncio
-import sys
 import os
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-# Add project root to Python path
+# Project root directory
 PROJECT_ROOT = Path(__file__).parent.parent
-sys.path.insert(0, str(PROJECT_ROOT))
-sys.path.insert(0, str(PROJECT_ROOT / "enhanced_agent" / "src"))
 
 
 @pytest.fixture(scope="session")

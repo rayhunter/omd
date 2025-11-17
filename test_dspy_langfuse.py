@@ -4,14 +4,18 @@ This will verify that DSPy queries are properly traced.
 """
 
 import asyncio
-import sys
 from pathlib import Path
 
-# Add paths
-sys.path.insert(0, str(Path(__file__).parent))
-sys.path.insert(0, str(Path(__file__).parent / "enhanced_agent" / "src"))
+# Project root
+project_root = Path(__file__).parent
 
-from langfuse_integration import langfuse_manager, shutdown_langfuse
+# Import langfuse integration (from project root)
+try:
+    from langfuse_integration import langfuse_manager, shutdown_langfuse
+except ImportError:
+    print("⚠️  Langfuse integration not available")
+    langfuse_manager = None
+    shutdown_langfuse = lambda: None
 
 def test_dspy_integration():
     """Test that DSPy integration is working with tracing."""

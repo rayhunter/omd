@@ -3,12 +3,10 @@
 Test script to verify the integration between OpenManus and the enhanced agent.
 """
 import asyncio
-import sys
 from pathlib import Path
 
-# Add the project root to the path
+# Project root - packages should be installed via pip install -e
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 async def test_enhanced_agent():
     """Test the enhanced agent integration."""
@@ -16,7 +14,7 @@ async def test_enhanced_agent():
         print("Testing enhanced agent integration...")
         
         # Import the enhanced agent tool
-        from OpenManus.app.tool.enhanced_agent_tool import EnhancedAgentTool
+        from openmanus.tool.enhanced_agent_tool import EnhancedAgentTool
         
         # Initialize the tool
         tool = EnhancedAgentTool()

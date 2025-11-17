@@ -1,8 +1,8 @@
 import asyncio
 from typing import Optional
-import sys
 from pathlib import Path
 import os
+
 # Load environment variables from .env file (if available)
 try:
     from dotenv import load_dotenv
@@ -13,19 +13,14 @@ except ImportError:
     def load_dotenv():
         pass
 
-# Add OpenManus to Python path
-openmanus_path = Path(__file__).parent.parent.parent / "OpenManus"
-if str(openmanus_path) not in sys.path:
-    sys.path.insert(0, str(openmanus_path))
-
 # Import our integration modules
 from .dspy_mcp_integration import DSPyMCPIntegration
 from .mcp_client import MCPClient
 
 # Import OpenManus components
-from app.agent import ReActAgent
-from app.config import Config
-from app.schema import Message
+from openmanus.agent import ReActAgent
+from openmanus.config import Config
+from openmanus.schema import Message
 
 # Configure OpenManus - Config is a singleton that auto-loads
 config = Config()

@@ -12,8 +12,8 @@ import dspy
 import time
 from typing import Dict, Any, List, Optional
 import os
-import sys
 from pathlib import Path
+
 # Load environment variables from .env file (if available)
 try:
     from dotenv import load_dotenv
@@ -24,17 +24,18 @@ except ImportError:
     def load_dotenv():
         pass
 
-# Add project root to path for langfuse_integration
-project_root = Path(__file__).parent.parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
 from .dspy_modules import StructuredResearchPipeline, QuickAnalysis, ResearchPiplineResult
 from .mcp_client import MCPClient
 
-# Import Langfuse integration
+# Import Langfuse integration (optional, from project root)
 try:
+    import sys
+    # Only temporarily add to path if langfuse_integration is needed
+    project_root = Path(__file__).parent.parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
     from langfuse_integration import langfuse_manager
+    sys.path.remove(str(project_root))  # Clean up after import
     LANGFUSE_AVAILABLE = True
 except ImportError:
     LANGFUSE_AVAILABLE = False

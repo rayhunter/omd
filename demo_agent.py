@@ -23,7 +23,6 @@ async def demo_research_agent():
     
     try:
         # Import the enhanced agent (may fail if dependencies missing)
-        sys.path.append(str(Path(__file__).parent / "enhanced_agent"))
         from enhanced_agent.src.app import run_enhanced_agent, create_agent
 
         # Create an agent instance for the demo
@@ -79,7 +78,6 @@ async def interactive_demo():
     print("Type 'quit' to exit\n")
 
     try:
-        sys.path.append(str(Path(__file__).parent / "enhanced_agent"))
         from enhanced_agent.src.app import run_enhanced_agent, create_agent
 
         # Create an agent instance for interactive mode

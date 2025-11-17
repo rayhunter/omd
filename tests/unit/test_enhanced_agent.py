@@ -4,12 +4,10 @@ Simple test script to verify the enhanced agent integration.
 Run this from the project root directory.
 """
 import asyncio
-import sys
 from pathlib import Path
 
-# Add the project root to the path
+# Project root - packages should be installed via pip install -e
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 async def test_enhanced_agent():
     """Test the enhanced agent integration."""
