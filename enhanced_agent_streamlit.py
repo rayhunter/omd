@@ -196,20 +196,20 @@ if str(enhanced_agent_path) not in sys.path:
 
 # Import the enhanced agent
 try:
-    from src.app import run_enhanced_agent, dspy_mcp
+    from src.app import run_enhanced_agent, create_agent, dspy_mcp
     # mcp_client might not be available if dspy_mcp is working
     try:
         from src.app import mcp_client
     except ImportError:
         mcp_client = None
-    
+
     # Import the enhanced MCP client for UI features
     try:
         from src.enhanced_mcp_client import EnhancedMCPClient
         enhanced_mcp = EnhancedMCPClient()
     except ImportError:
         enhanced_mcp = None
-    
+
     agent_available = True
 except ImportError as e:
     st.error(f"Failed to import enhanced agent: {e}")
@@ -217,6 +217,7 @@ except ImportError as e:
     dspy_mcp = None
     mcp_client = None
     enhanced_mcp = None
+    create_agent = None
 
 def display_agent_status():
     """Display the status of various agent components"""
@@ -327,10 +328,22 @@ def display_architecture_info():
     for component in components:
         st.sidebar.markdown(component)
 
-async def process_query(user_input: str, servers=None, use_auto=True):
-    """Process user query with the enhanced agent"""
+async def process_query(user_input: str, agent, servers=None, use_auto=True):
+    """
+    Process user query with the enhanced agent.
+
+    Args:
+        user_input: The user's query string
+        agent: The agent instance to use (from session state)
+        servers: Optional list of servers to query (for future multi-server support)
+        use_auto: Whether to use auto server selection (for future multi-server support)
+
+    Returns:
+        Tuple of (result, error) where result is the response string and error is None,
+        or (None, error_string) if an error occurred
+    """
     try:
-        result = await run_enhanced_agent(user_input)
+        result = await run_enhanced_agent(user_input, agent=agent)
         return result, None
     except Exception as e:
         return None, str(e)
@@ -387,13 +400,18 @@ def test_mcp_servers(query: str, servers: List[str] = None):
     display_multi_server_results(results)
 
 def main():
+    # Initialize session-scoped agent instance
+    if "agent" not in st.session_state and agent_available and create_agent:
+        st.session_state.agent = create_agent()
+        print("🤖 Created new session-scoped agent instance")
+
     # Initialize Langfuse session tracking
     if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
         if 'langfuse_session_id' not in st.session_state:
             # Generate unique session ID for this Streamlit session
             st.session_state.langfuse_session_id = f"streamlit-{uuid.uuid4().hex[:8]}"
             st.session_state.langfuse_user_id = "streamlit-user"  # Could be from auth
-            
+
             # Set the session in Langfuse
             langfuse_manager.set_session(
                 st.session_state.langfuse_session_id,
@@ -522,7 +540,7 @@ def main():
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
-                        result, error = loop.run_until_complete(process_query(user_input))
+                        result, error = loop.run_until_complete(process_query(user_input, agent=st.session_state.agent))
                     finally:
                         loop.close()
 
@@ -596,7 +614,7 @@ def main():
                         loop = asyncio.new_event_loop()
                         asyncio.set_event_loop(loop)
                         try:
-                            result, error = loop.run_until_complete(process_query(prompt))
+                            result, error = loop.run_until_complete(process_query(prompt, agent=st.session_state.agent))
                         finally:
                             loop.close()
                 else:
@@ -604,7 +622,7 @@ def main():
                     loop = asyncio.new_event_loop()
                     asyncio.set_event_loop(loop)
                     try:
-                        result, error = loop.run_until_complete(process_query(prompt))
+                        result, error = loop.run_until_complete(process_query(prompt, agent=st.session_state.agent))
                     finally:
                         loop.close()
                 

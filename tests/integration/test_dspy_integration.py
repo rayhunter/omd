@@ -22,37 +22,40 @@ async def test_dspy_integration():
     
     try:
         # Import the enhanced agent
-        from enhanced_agent.src.app import run_enhanced_agent, dspy_mcp
-        
+        from enhanced_agent.src.app import run_enhanced_agent, create_agent, dspy_mcp
+
+        # Create an agent instance for testing
+        agent = create_agent()
+
         # Check integration status
         if dspy_mcp:
             print("✅ DSPy+MCP integration loaded successfully")
             print(f"📊 MCP servers: {dspy_mcp.mcp_client.list_servers()}")
         else:
             print("⚠️  DSPy integration not available, testing basic MCP mode")
-        
+
         print("\n🔍 Running test queries...\n")
-        
+
         # Test queries of different types
         test_queries = [
             "What is machine learning?",
-            "How does photosynthesis work?", 
+            "How does photosynthesis work?",
             "What are the latest developments in quantum computing?"
         ]
-        
+
         for i, query in enumerate(test_queries, 1):
             print(f"📝 Test Query {i}: {query}")
             print("-" * 30)
-            
+
             try:
-                result = await run_enhanced_agent(query)
+                result = await run_enhanced_agent(query, agent=agent)
                 print("✅ Query processed successfully")
                 print(f"Response length: {len(result)} characters")
                 print(f"Preview: {result[:200]}...")
-                
+
             except Exception as e:
                 print(f"❌ Error processing query: {e}")
-                
+
             print("\n" + "="*50 + "\n")
             
         print("🏁 Integration test completed")

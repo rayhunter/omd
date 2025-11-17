@@ -15,15 +15,18 @@ async def test_enhanced_agent():
     """Test the enhanced agent integration."""
     try:
         # Import the enhanced agent
-        from enhanced_agent.src import run_enhanced_agent
-        
+        from enhanced_agent.src.app import run_enhanced_agent, create_agent
+
+        # Create an agent instance for testing
+        agent = create_agent()
+
         # Test query
         query = "What are the latest developments in AI?"
         print(f"Testing enhanced agent with query: {query}")
-        
+
         # Run the enhanced agent
-        result = await run_enhanced_agent(query)
-        
+        result = await run_enhanced_agent(query, agent=agent)
+
         # Print the result
         print("\nEnhanced Agent Response:")
         print("=" * 80)

@@ -159,20 +159,43 @@ class EnhancedResearchAgent(ReActAgent):
         self.research_result = None
         self.processing_step = None
 
-# Initialize OpenManus agent
-agent = EnhancedResearchAgent(
-    name="enhanced_agent",
-    description="Enhanced research agent with MCP integration"
-)
+def create_agent(name: str = "enhanced_agent", description: str = None) -> EnhancedResearchAgent:
+    """
+    Factory function to create a new EnhancedResearchAgent instance.
+
+    Args:
+        name: Name of the agent
+        description: Optional description of the agent
+
+    Returns:
+        A new EnhancedResearchAgent instance
+    """
+    if description is None:
+        description = "Enhanced research agent with MCP integration"
+
+    return EnhancedResearchAgent(name=name, description=description)
 
 # Main application function
-async def run_enhanced_agent(user_query: str) -> str:
-    """Run the enhanced agent with a user query"""
+async def run_enhanced_agent(user_query: str, agent: EnhancedResearchAgent = None) -> str:
+    """
+    Run the enhanced agent with a user query.
+
+    Args:
+        user_query: The user's query string
+        agent: The agent instance to use. If None, a new agent will be created (legacy behavior).
+
+    Returns:
+        The agent's response string
+    """
+    if agent is None:
+        # Legacy fallback: create a new agent for backward compatibility
+        agent = create_agent()
+
     return await agent.run(user_query)
 
 if __name__ == "__main__":
     print("🚀 Enhanced Research Agent - OpenManus + DSPy + MCP Integration")
-    
+
     # Show integration status
     if dspy_mcp:
         print("✅ DSPy+MCP structured reasoning: ENABLED")
@@ -185,7 +208,7 @@ if __name__ == "__main__":
             print("🎯 Default MCP server:", mcp_client.default_server)
         except:
             print("❌ MCP client unavailable")
-    
+
     print("-" * 50)
     print("This agent combines:")
     print("1. 🤖 OpenManus ReAct pattern for step-by-step processing")
@@ -193,17 +216,20 @@ if __name__ == "__main__":
     print("3. 🔍 MCP for real-time information gathering")
     print("4. 📊 Structured pipeline: Query Analysis → Information Gathering → Synthesis → Response")
     print("-" * 50)
-    
+
+    # Create a session-scoped agent instance for CLI usage
+    cli_agent = create_agent()
+
     while True:
         try:
             user_input = input("\nEnter your request (or 'quit' to exit): ")
             if user_input.lower() in ['quit', 'exit']:
                 break
-                
-            result = asyncio.run(run_enhanced_agent(user_input))
+
+            result = asyncio.run(run_enhanced_agent(user_input, agent=cli_agent))
             print("\nEnhanced Agent Response:")
             print(result)
-            
+
         except KeyboardInterrupt:
             print("\nGracefully shutting down...")
             break

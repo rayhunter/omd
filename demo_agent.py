@@ -24,18 +24,21 @@ async def demo_research_agent():
     try:
         # Import the enhanced agent (may fail if dependencies missing)
         sys.path.append(str(Path(__file__).parent / "enhanced_agent"))
-        from enhanced_agent.src.app import run_enhanced_agent
-        
+        from enhanced_agent.src.app import run_enhanced_agent, create_agent
+
+        # Create an agent instance for the demo
+        agent = create_agent()
+
         print("✅ Enhanced research agent loaded successfully")
         print("\n🔍 Running demo queries...\n")
-        
+
         for i, query in enumerate(demo_queries, 1):
             print(f"📝 Demo Query {i}: {query}")
             print("=" * 40)
-            
+
             try:
                 # Run the query through our enhanced agent
-                result = await run_enhanced_agent(query)
+                result = await run_enhanced_agent(query, agent=agent)
                 
                 # Show condensed results
                 print("✅ Query processed successfully!")
@@ -69,32 +72,35 @@ async def demo_research_agent():
 
 async def interactive_demo():
     """Run interactive demo where user can ask questions."""
-    
+
     print("\n🎮 Interactive Demo Mode")
     print("=" * 30)
     print("Ask the research agent any question!")
     print("Type 'quit' to exit\n")
-    
+
     try:
         sys.path.append(str(Path(__file__).parent / "enhanced_agent"))
-        from enhanced_agent.src.app import run_enhanced_agent
-        
+        from enhanced_agent.src.app import run_enhanced_agent, create_agent
+
+        # Create an agent instance for interactive mode
+        agent = create_agent()
+
         while True:
             user_query = input("🤔 Your question: ")
-            
+
             if user_query.lower() in ['quit', 'exit', 'q']:
                 print("👋 Thanks for trying the enhanced research agent!")
                 break
-                
+
             if not user_query.strip():
                 print("Please enter a question!")
                 continue
-                
+
             print(f"\n🚀 Processing: {user_query}")
             print("-" * 30)
-            
+
             try:
-                result = await run_enhanced_agent(user_query)
+                result = await run_enhanced_agent(user_query, agent=agent)
                 print("\n📋 Research Agent Response:")
                 print("=" * 35)
                 print(result)
