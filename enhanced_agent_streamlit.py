@@ -321,6 +321,82 @@ def display_architecture_info():
     for component in components:
         st.sidebar.markdown(component)
 
+# ============================================================================
+# Async Event Loop Management
+# ============================================================================
+# Streamlit runs synchronously, but our agent code uses async/await.
+# To avoid the overhead of creating/closing event loops repeatedly,
+# we store a persistent event loop in st.session_state and reuse it
+# for all async operations within a session.
+# ============================================================================
+
+def get_or_create_event_loop():
+    """
+    Get or create a persistent event loop stored in session state.
+    This ensures we reuse the same event loop across all async operations
+    in the Streamlit session, avoiding the overhead of creating/closing loops.
+
+    Returns:
+        asyncio.AbstractEventLoop: The event loop for this session
+    """
+    if 'event_loop' not in st.session_state:
+        # Create a new event loop and store it in session state
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        st.session_state.event_loop = loop
+        print("🔄 Created new event loop for session")
+
+    return st.session_state.event_loop
+
+def run_async(coro):
+    """
+    Centralized async execution helper that reuses the session event loop.
+
+    This function ensures all async operations in Streamlit use the same
+    event loop, avoiding the overhead and potential issues of creating
+    and destroying loops repeatedly.
+
+    Usage:
+        result = run_async(some_async_function(arg1, arg2))
+
+    Args:
+        coro: A coroutine to execute
+
+    Returns:
+        The result of the coroutine execution
+
+    Raises:
+        RuntimeError: If the event loop is already running (shouldn't happen in Streamlit)
+    """
+    loop = get_or_create_event_loop()
+
+    # Check if loop is running (shouldn't be in Streamlit, but safety check)
+    if loop.is_running():
+        # If loop is already running, we can't use run_until_complete
+        # This shouldn't happen in Streamlit's execution model
+        raise RuntimeError("Event loop is already running. Use await instead.")
+
+    # Run the coroutine on the persistent loop
+    return loop.run_until_complete(coro)
+
+def cleanup_event_loop():
+    """
+    Cleanup function to properly close the event loop when the session ends.
+    Note: Streamlit doesn't provide a built-in session cleanup hook,
+    so this needs to be called manually if needed.
+    """
+    if 'event_loop' in st.session_state:
+        loop = st.session_state.event_loop
+        if not loop.is_closed():
+            # Cancel all pending tasks
+            pending = asyncio.all_tasks(loop)
+            for task in pending:
+                task.cancel()
+            # Close the loop
+            loop.close()
+            print("🔄 Event loop closed")
+        del st.session_state.event_loop
+
 async def process_query(user_input: str, agent, servers=None, use_auto=True):
     """
     Process user query with the enhanced agent.
@@ -529,13 +605,8 @@ def main():
                         progress_bar.progress((i + 1) / len(steps))
                         time.sleep(0.5)  # Visual delay for better UX
 
-                    # Run the actual query
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        result, error = loop.run_until_complete(process_query(user_input, agent=st.session_state.agent))
-                    finally:
-                        loop.close()
+                    # Run the actual query using centralized async helper
+                    result, error = run_async(process_query(user_input, agent=st.session_state.agent))
 
                     # Clear progress indicators
                     progress_bar.empty()
@@ -603,21 +674,11 @@ def main():
                         },
                         tags=["streamlit", "chat", "user_query"]
                     ):
-                        # Run async function in sync context
-                        loop = asyncio.new_event_loop()
-                        asyncio.set_event_loop(loop)
-                        try:
-                            result, error = loop.run_until_complete(process_query(prompt, agent=st.session_state.agent))
-                        finally:
-                            loop.close()
+                        # Run async function using centralized helper
+                        result, error = run_async(process_query(prompt, agent=st.session_state.agent))
                 else:
-                    # Run without tracing
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    try:
-                        result, error = loop.run_until_complete(process_query(prompt, agent=st.session_state.agent))
-                    finally:
-                        loop.close()
+                    # Run without tracing using centralized helper
+                    result, error = run_async(process_query(prompt, agent=st.session_state.agent))
                 
                 if error:
                     error_msg = f"❌ **Error:** {error}"
