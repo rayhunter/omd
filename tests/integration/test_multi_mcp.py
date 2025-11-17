@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for multiple MCP servers
+Test script for multiple MCP servers (async version)
 """
 
 from pathlib import Path
@@ -11,37 +11,36 @@ import sys
 project_root = Path(__file__).parent.parent.parent
 
 try:
-    from enhanced_agent.src.enhanced_mcp_client import EnhancedMCPClient
-    print("✅ Enhanced MCP Client imported successfully")
+    from enhanced_agent.src.mcp_client import MCPClient
+    print("✅ MCP Client imported successfully")
 except ImportError as e:
-    print(f"❌ Failed to import Enhanced MCP Client: {e}")
+    print(f"❌ Failed to import MCP Client: {e}")
     sys.exit(1)
 
 def test_basic_functionality():
     """Test basic MCP client functionality"""
-    print("\n🧪 Testing Enhanced MCP Client")
+    print("\n🧪 Testing MCP Client")
     print("=" * 50)
-    
+
     # Initialize client
-    client = EnhancedMCPClient()
-    
+    client = MCPClient()
+
     # List available servers
     print("📊 Available servers:")
     servers = client.list_servers()
     for server in servers:
         info = client.get_server_info(server)
-        capabilities = info.get('capabilities', []) if info else []
-        print(f"  - {server}: {', '.join(capabilities) if capabilities else 'No capabilities listed'}")
-    
+        print(f"  - {server}: {info}")
+
     return client, servers
 
-def test_single_server(client, server_name, query):
-    """Test a single server with a query"""
+async def test_single_server(client, server_name, query):
+    """Test a single server with a query (async)"""
     print(f"\n🔍 Testing {server_name} with query: '{query}'")
     print("-" * 40)
-    
+
     try:
-        result = client.search_single_server(query, server_name)
+        result = await client.search(query, server_name)
         if result.startswith("Error:"):
             print(f"❌ {result}")
         else:
@@ -49,71 +48,64 @@ def test_single_server(client, server_name, query):
     except Exception as e:
         print(f"❌ Exception: {e}")
 
-def test_multi_server(client, query, servers=None):
-    """Test multiple servers with the same query"""
-    print(f"\n🌐 Testing multiple servers with query: '{query}'")
+async def test_concurrent_queries(client, queries):
+    """Test concurrent queries with semaphore-based rate limiting"""
+    print(f"\n⚡ Testing concurrent queries")
     print("=" * 50)
-    
+
+    async def query_and_report(query, index):
+        print(f"🔄 Starting query {index+1}: '{query[:50]}...'")
+        result = await client.search(query)
+        print(f"✅ Query {index+1} complete: {len(result)} chars")
+        return result
+
     try:
-        results = client.search(query, servers)
-        
-        for server_name, result in results.items():
-            print(f"\n📡 {server_name}:")
-            if result.startswith("Error:"):
-                print(f"   ❌ {result}")
+        tasks = [query_and_report(query, i) for i, query in enumerate(queries)]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        print(f"\n📊 Results summary:")
+        for i, result in enumerate(results):
+            if isinstance(result, Exception):
+                print(f"  Query {i+1}: ❌ Failed with {type(result).__name__}")
             else:
-                # Truncate long results
-                display_result = result[:150] + "..." if len(result) > 150 else result
-                print(f"   ✅ {display_result}")
-        
+                print(f"  Query {i+1}: ✅ {len(result)} characters")
+
         return results
     except Exception as e:
-        print(f"❌ Multi-server search failed: {e}")
-        return {}
+        print(f"❌ Concurrent query test failed: {e}")
+        return []
 
-def test_auto_routing(client, queries):
-    """Test automatic server routing"""
-    print(f"\n🤖 Testing automatic server routing")
+async def main():
+    """Main test function (async)"""
+    print("🚀 Async MCP Client Testing")
     print("=" * 50)
-    
-    for query in queries:
-        print(f"\nQuery: '{query}'")
-        selected_servers = client.auto_select_servers(query)
-        print(f"Auto-selected servers: {selected_servers}")
 
-def main():
-    """Main test function"""
-    print("🚀 Enhanced MCP Server Testing")
-    print("=" * 50)
-    
     # Initialize and test basic functionality
     client, servers = test_basic_functionality()
-    
+
     if not servers:
         print("❌ No servers available for testing")
         return
-    
+
     # Test queries
     test_queries = [
         "What is artificial intelligence?",
-        "Current weather in New York",
-        "Latest research on quantum computing",
-        "TSLA stock price"
+        "What is machine learning?",
+        "What is deep learning?",
     ]
-    
-    # Test individual servers (only test llama-mcp as it's most likely to work)
-    test_single_server(client, "llama-mcp", "What is machine learning?")
-    
-    # Test auto routing
-    test_auto_routing(client, test_queries)
-    
-    # Test multi-server search with available servers
-    print(f"\n🔧 Testing with available servers: {servers[:3]}")  # Limit to first 3
-    test_multi_server(client, "What is artificial intelligence?", servers[:3])
-    
+
+    # Test single server query
+    await test_single_server(client, "llama-mcp", "What is machine learning?")
+
+    # Test concurrent queries
+    await test_concurrent_queries(client, test_queries)
+
+    # Cleanup
+    await client.close()
+
     print("\n✅ Testing completed!")
-    print("\n💡 Note: Some servers may show errors if API keys are not configured.")
-    print("   This is expected for services like News API, Weather API, etc.")
+    print("\n💡 Note: Some servers may show errors if they are not running.")
+    print("   This is expected if Ollama or other services are not available.")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

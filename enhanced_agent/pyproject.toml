@@ -26,7 +26,7 @@ classifiers = [
 
 dependencies = [
     "openai>=1.58.1,<1.67.0",
-    "requests>=2.31.0",
+    "httpx>=0.27.0",
     "dspy-ai>=2.3.3",
     "openmanus",  # Will be installed from local package
     "streamlit>=1.28.0",

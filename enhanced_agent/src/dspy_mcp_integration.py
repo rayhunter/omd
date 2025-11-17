@@ -84,7 +84,11 @@ class DSPyMCPIntegration:
             'max_mcp_queries': 3,  # Maximum number of MCP queries per research session
             'enable_multi_step': True,  # Enable multi-step research
             'confidence_threshold': 0.7,  # Minimum confidence for direct answers
+            'max_concurrent_queries': 3,  # Maximum concurrent MCP queries
         }
+
+        # Semaphore for controlling concurrent MCP queries
+        self._mcp_semaphore = asyncio.Semaphore(self.config['max_concurrent_queries'])
         
     def _setup_dspy(self, model_name: str, enable_cache: bool = True):
         """Setup DSPy with the specified LLM model."""
@@ -198,18 +202,18 @@ class DSPyMCPIntegration:
     async def gather_information(self, search_terms: List[str], max_queries: Optional[int] = None) -> str:
         """
         Gather information using MCP client based on DSPy-generated search terms.
-        
+
+        Uses asyncio.gather for concurrent queries with semaphore-based rate limiting.
+
         Args:
             search_terms: List of search terms from DSPy analysis
             max_queries: Maximum number of queries to make (defaults to config)
-            
+
         Returns:
             Aggregated information from all MCP queries
         """
         max_queries = max_queries or self.config['max_mcp_queries']
-        
-        gathered_info = []
-        
+
         # Parse search terms if they come as a single string with line breaks
         if len(search_terms) == 1 and '\n' in search_terms[0]:
             # Split multi-line search terms and clean them
@@ -222,50 +226,89 @@ class DSPyMCPIntegration:
                         line = line.split('. ', 1)[1]
                     parsed_terms.append(line)
             search_terms = parsed_terms[:max_queries]  # Limit to max_queries
-        
-        # Use top search terms up to max_queries limit
-        for i, term in enumerate(search_terms[:max_queries]):
-            try:
-                print(f"🔍 MCP Query {i+1}/{min(len(search_terms), max_queries)}: '{term[:50]}{'...' if len(term) > 50 else ''}'")
-                
-                # Query MCP for this search term with tracing
-                start_time = time.time()
-                response = self.mcp_client.search(term)
-                elapsed_ms = (time.time() - start_time) * 1000
-                
-                # Trace the MCP call
-                if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
-                    langfuse_manager.trace_mcp_call(
-                        server_name=getattr(self.mcp_client, 'default_server', 'unknown'),
-                        query=term,
-                        response=response[:500] if response else "No response",
-                        latency_ms=elapsed_ms,
-                        metadata={
-                            "query_index": i + 1,
-                            "total_queries": min(len(search_terms), max_queries),
-                            "response_length": len(response) if response else 0,
-                            "success": response and "Error:" not in response
+
+        # Limit search terms to max_queries
+        limited_terms = search_terms[:max_queries]
+
+        async def _query_with_semaphore(term: str, index: int) -> Dict[str, Any]:
+            """Execute a single MCP query with semaphore-based rate limiting."""
+            async with self._mcp_semaphore:
+                try:
+                    print(f"🔍 MCP Query {index+1}/{len(limited_terms)}: '{term[:50]}{'...' if len(term) > 50 else ''}'")
+
+                    # Query MCP for this search term with tracing
+                    start_time = time.time()
+                    response = await self.mcp_client.search(term)
+                    elapsed_ms = (time.time() - start_time) * 1000
+
+                    # Trace the MCP call
+                    if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+                        langfuse_manager.trace_mcp_call(
+                            server_name=getattr(self.mcp_client, 'default_server', 'unknown'),
+                            query=term,
+                            response=response[:500] if response else "No response",
+                            latency_ms=elapsed_ms,
+                            metadata={
+                                "query_index": index + 1,
+                                "total_queries": len(limited_terms),
+                                "response_length": len(response) if response else 0,
+                                "success": response and "Error:" not in response
+                            }
+                        )
+
+                    if response and "Error:" not in response:
+                        print(f"   ✅ Got {len(response)} characters of information")
+                        return {
+                            "term": term,
+                            "response": response,
+                            "success": True,
+                            "error": None
                         }
-                    )
-                
-                if response and "Error:" not in response:
-                    gathered_info.append(f"Query: {term}\nResponse: {response}\n---")
-                    print(f"   ✅ Got {len(response)} characters of information")
-                else:
-                    print(f"   ⚠️  Query failed or returned error: {response[:100]}...")
-                    
-            except Exception as e:
-                print(f"   ❌ MCP query failed: {e}")
-                gathered_info.append(f"Query: {term}\nError: {str(e)}\n---")
-        
+                    else:
+                        print(f"   ⚠️  Query failed or returned error: {response[:100]}...")
+                        return {
+                            "term": term,
+                            "response": response,
+                            "success": False,
+                            "error": "Query returned error"
+                        }
+
+                except Exception as e:
+                    print(f"   ❌ MCP query failed: {e}")
+                    return {
+                        "term": term,
+                        "response": None,
+                        "success": False,
+                        "error": str(e)
+                    }
+
+        # Execute all queries concurrently with semaphore-based rate limiting
+        print(f"🚀 Starting {len(limited_terms)} concurrent MCP queries (max {self.config['max_concurrent_queries']} at once)...")
+        query_tasks = [
+            _query_with_semaphore(term, i)
+            for i, term in enumerate(limited_terms)
+        ]
+        results = await asyncio.gather(*query_tasks, return_exceptions=True)
+
+        # Process results
+        gathered_info = []
+        for result in results:
+            if isinstance(result, Exception):
+                gathered_info.append(f"Query Error: {str(result)}\n---")
+            elif result["success"]:
+                gathered_info.append(f"Query: {result['term']}\nResponse: {result['response']}\n---")
+            else:
+                error_msg = result['error'] or result.get('response', 'Unknown error')
+                gathered_info.append(f"Query: {result['term']}\nError: {error_msg}\n---")
+
         # Combine all gathered information
         combined_info = "\n\n".join(gathered_info)
-        
+
         if not combined_info.strip():
             combined_info = "No external information was successfully retrieved."
-            
+
         print(f"📋 Gathered {len(combined_info)} characters of information from {len(gathered_info)} queries")
-        
+
         return combined_info
     
     async def process_research_query(self, user_query: str) -> ResearchPiplineResult:
