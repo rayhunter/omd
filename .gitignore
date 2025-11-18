@@ -38,6 +38,12 @@ env/
 venv/
 ENV/
 
+# Config files with secrets (use .example versions for templates)
+config/config.development.toml
+config/config.production.toml
+config/config.staging.toml
+config.toml
+
 # Logs
 *.log
 logs/ 
