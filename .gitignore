@@ -44,6 +44,9 @@ config/config.production.toml
 config/config.staging.toml
 config.toml
 
+# Streamlit secrets
+.streamlit/secrets.toml
+
 # Logs
 *.log
 logs/ 
