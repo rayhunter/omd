@@ -47,6 +47,18 @@ except ImportError:
     langfuse_manager = None
     print("⚠️  Langfuse integration not available")
 
+# Import privacy features
+try:
+    from privacy import get_session_manager, get_redacted_logger
+    PRIVACY_AVAILABLE = True
+    session_manager = get_session_manager()
+    logger = get_redacted_logger(__name__)
+except ImportError:
+    PRIVACY_AVAILABLE = False
+    session_manager = None
+    logger = None
+    print("⚠️  Privacy features not available")
+
 # Configure Streamlit page
 st.set_page_config(
     page_title="Enhanced Research Agent",
@@ -397,7 +409,7 @@ def cleanup_event_loop():
             print("🔄 Event loop closed")
         del st.session_state.event_loop
 
-async def process_query(user_input: str, agent, servers=None, use_auto=True):
+async def process_query(user_input: str, agent, servers=None, use_auto=True, session_id=None):
     """
     Process user query with the enhanced agent.
 
@@ -406,13 +418,14 @@ async def process_query(user_input: str, agent, servers=None, use_auto=True):
         agent: The agent instance to use (from session state)
         servers: Optional list of servers to query (for future multi-server support)
         use_auto: Whether to use auto server selection (for future multi-server support)
+        session_id: Optional session ID for session-aware processing
 
     Returns:
         Tuple of (result, error) where result is the response string and error is None,
         or (None, error_string) if an error occurred
     """
     try:
-        result = await run_enhanced_agent(user_input, agent=agent)
+        result = await run_enhanced_agent(user_input, agent=agent, session_id=session_id)
         return result, None
     except Exception as e:
         return None, str(e)
@@ -469,17 +482,37 @@ def test_mcp_servers(query: str, servers: List[str] = None):
     display_multi_server_results(results)
 
 def main():
+    # Initialize session ID (shared by all features)
+    if 'session_id' not in st.session_state:
+        st.session_state.session_id = f"streamlit-{uuid.uuid4().hex[:8]}"
+        st.session_state.user_id = "streamlit-user"  # Could be from auth
+        st.session_state.session_created_at = time.time()
+        if logger:
+            logger.info(f"Created new session: {st.session_state.session_id}")
+    
+    # Initialize SessionManager
+    if PRIVACY_AVAILABLE and session_manager:
+        if 'privacy_session_initialized' not in st.session_state:
+            session_manager.create_session(
+                st.session_state.session_id,
+                user_id=st.session_state.user_id
+            )
+            st.session_state.privacy_session_initialized = True
+            if logger:
+                logger.info("SessionManager initialized for session")
+    
     # Initialize session-scoped agent instance
     if "agent" not in st.session_state and agent_available and create_agent:
-        st.session_state.agent = create_agent()
-        print("🤖 Created new session-scoped agent instance")
+        # Pass session_id to create session-aware agent
+        st.session_state.agent = create_agent(session_id=st.session_state.session_id)
+        if logger:
+            logger.info(f"Created session-aware agent instance: {st.session_state.session_id}")
 
     # Initialize Langfuse session tracking
     if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
         if 'langfuse_session_id' not in st.session_state:
-            # Generate unique session ID for this Streamlit session
-            st.session_state.langfuse_session_id = f"streamlit-{uuid.uuid4().hex[:8]}"
-            st.session_state.langfuse_user_id = "streamlit-user"  # Could be from auth
+            st.session_state.langfuse_session_id = st.session_state.session_id
+            st.session_state.langfuse_user_id = st.session_state.user_id
 
             # Set the session in Langfuse
             langfuse_manager.set_session(
@@ -490,6 +523,41 @@ def main():
     # Header
     st.title("🧠 Enhanced Research Agent")
     st.markdown("*Powered by OpenManus + MCP Integration + DSPy*")
+    
+    # Display session info and logout button
+    with st.sidebar:
+        st.markdown("### 🔐 Session Info")
+        st.caption(f"Session: `{st.session_state.session_id[:8]}...`")
+        
+        if PRIVACY_AVAILABLE and session_manager:
+            session_data = session_manager.get_session(st.session_state.session_id)
+            if session_data:
+                msg_count = len(session_data.messages)
+                st.caption(f"Messages: {msg_count}/{session_manager.config.max_history_messages}")
+                
+                # Session age
+                age_minutes = int((time.time() - st.session_state.session_created_at) / 60)
+                timeout_minutes = int(session_manager.config.session_timeout_seconds / 60)
+                st.caption(f"Age: {age_minutes}m / {timeout_minutes}m timeout")
+        
+        # Logout button
+        if st.button("🚪 Logout & Clear Session", use_container_width=True):
+            if PRIVACY_AVAILABLE and session_manager:
+                session_manager.end_session(st.session_state.session_id)
+                if logger:
+                    logger.info(f"User logged out, session cleared: {st.session_state.session_id}")
+            
+            if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+                langfuse_manager.clear_session()
+            
+            # Clear all session state
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            
+            st.success("Session cleared!")
+            st.rerun()
+        
+        st.markdown("---")
     
     # Display Langfuse status
     if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
@@ -582,8 +650,16 @@ def main():
                 submitted = st.form_submit_button("🚀 Process Query", type="primary")
 
             if submitted and user_input:
+                # Add to session manager
+                if PRIVACY_AVAILABLE and session_manager:
+                    session_manager.add_message(st.session_state.session_id, "user", user_input)
+                
                 # Add to chat history
                 st.session_state.messages.append({"role": "user", "content": user_input})
+                
+                # Log with privacy
+                if logger:
+                    logger.info_user_input("Processing form query", user_input)
 
                 # Process query
                 with st.spinner("🧠 Enhanced agent is thinking..."):
@@ -606,15 +682,24 @@ def main():
                         time.sleep(0.5)  # Visual delay for better UX
 
                     # Run the actual query using centralized async helper
-                    result, error = run_async(process_query(user_input, agent=st.session_state.agent))
+                    result, error = run_async(process_query(
+                        user_input, 
+                        agent=st.session_state.agent,
+                        session_id=st.session_state.session_id
+                    ))
 
                     # Clear progress indicators
                     progress_bar.empty()
                     status_text.empty()
 
                     if error:
-                        st.error(f"❌ **Error:** {error}")
-                        st.session_state.messages.append({"role": "assistant", "content": f"❌ **Error:** {error}"})
+                        error_msg = f"❌ **Error:** {error}"
+                        st.error(error_msg)
+                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                        
+                        # Add to session manager
+                        if PRIVACY_AVAILABLE and session_manager:
+                            session_manager.add_message(st.session_state.session_id, "assistant", error_msg)
                     else:
                         st.success("✅ **Response generated successfully!**")
 
@@ -624,6 +709,14 @@ def main():
 
                         # Add to chat history
                         st.session_state.messages.append({"role": "assistant", "content": result})
+                        
+                        # Add to session manager
+                        if PRIVACY_AVAILABLE and session_manager:
+                            session_manager.add_message(st.session_state.session_id, "assistant", result)
+                        
+                        # Log with privacy
+                        if logger:
+                            logger.info_agent_output("Form query completed", result)
 
                         # Store the result for download outside the form
                         st.session_state.last_result = result
@@ -656,6 +749,14 @@ def main():
         # Increment message count
         st.session_state.message_count = st.session_state.get('message_count', 0) + 1
         
+        # Add to session manager
+        if PRIVACY_AVAILABLE and session_manager:
+            session_manager.add_message(st.session_state.session_id, "user", prompt)
+        
+        # Log with privacy
+        if logger:
+            logger.info_user_input("Processing chat query", prompt)
+        
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -675,18 +776,38 @@ def main():
                         tags=["streamlit", "chat", "user_query"]
                     ):
                         # Run async function using centralized helper
-                        result, error = run_async(process_query(prompt, agent=st.session_state.agent))
+                        result, error = run_async(process_query(
+                            prompt, 
+                            agent=st.session_state.agent,
+                            session_id=st.session_state.session_id
+                        ))
                 else:
                     # Run without tracing using centralized helper
-                    result, error = run_async(process_query(prompt, agent=st.session_state.agent))
+                    result, error = run_async(process_query(
+                        prompt, 
+                        agent=st.session_state.agent,
+                        session_id=st.session_state.session_id
+                    ))
                 
                 if error:
                     error_msg = f"❌ **Error:** {error}"
                     st.error(error_msg)
                     st.session_state.messages.append({"role": "assistant", "content": error_msg})
+                    
+                    # Add to session manager
+                    if PRIVACY_AVAILABLE and session_manager:
+                        session_manager.add_message(st.session_state.session_id, "assistant", error_msg)
                 else:
                     st.markdown(result)
                     st.session_state.messages.append({"role": "assistant", "content": result})
+                    
+                    # Add to session manager
+                    if PRIVACY_AVAILABLE and session_manager:
+                        session_manager.add_message(st.session_state.session_id, "assistant", result)
+                    
+                    # Log with privacy
+                    if logger:
+                        logger.info_agent_output("Chat query completed", result)
     
    
     

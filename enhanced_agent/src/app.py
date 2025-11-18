@@ -22,6 +22,16 @@ from openmanus.agent import ReActAgent
 from openmanus.config import Config
 from openmanus.schema import Message
 
+# Import privacy features
+try:
+    from privacy import get_redacted_logger, get_session_manager
+    logger = get_redacted_logger(__name__)
+    session_manager = get_session_manager()
+except ImportError:
+    import logging
+    logger = logging.getLogger(__name__)
+    session_manager = None
+
 # Configure OpenManus - Config is a singleton that auto-loads
 config = Config()
 
@@ -51,9 +61,11 @@ class EnhancedResearchAgent(ReActAgent):
     """
     An agent that combines OpenManus ReAct pattern with DSPy structured reasoning 
     and MCP information gathering for enhanced research capabilities.
+    
+    Supports session-scoped conversation history when session_manager is available.
     """
     
-    def __init__(self, name: str, description: Optional[str] = None):
+    def __init__(self, name: str, description: Optional[str] = None, session_id: Optional[str] = None):
         super().__init__(name=name, description=description)
         
         # Choose integration mode based on availability
@@ -66,10 +78,36 @@ class EnhancedResearchAgent(ReActAgent):
             self.mcp_client = MCPClient()
             print("📝 Agent using basic MCP client (DSPy unavailable)")
         
+        # Session-aware state management
+        self.session_id = session_id
+        self.use_session_isolation = session_manager is not None and session_id is not None
+        
+        if self.use_session_isolation:
+            logger.info(f"Agent initialized with session isolation: {session_id}")
+        
         # State management
         self.current_query = None
         self.research_result = None
         self.processing_step = None
+    
+    def update_memory(self, role: str, content: str):
+        """Override to add session-scoped memory storage"""
+        # Call parent method to maintain OpenManus memory
+        super().update_memory(role, content)
+        
+        # Also store in session-scoped history if available
+        if self.use_session_isolation:
+            session_manager.add_message(
+                session_id=self.session_id,
+                role=role,
+                content=content
+            )
+    
+    def get_session_history(self):
+        """Get conversation history for the current session"""
+        if self.use_session_isolation:
+            return session_manager.get_history(self.session_id)
+        return self.memory.messages if hasattr(self, 'memory') else []
         
     async def think(self) -> bool:
         """Enhanced thinking process using DSPy structured reasoning when available"""
@@ -154,13 +192,14 @@ class EnhancedResearchAgent(ReActAgent):
         self.research_result = None
         self.processing_step = None
 
-def create_agent(name: str = "enhanced_agent", description: str = None) -> EnhancedResearchAgent:
+def create_agent(name: str = "enhanced_agent", description: str = None, session_id: Optional[str] = None) -> EnhancedResearchAgent:
     """
     Factory function to create a new EnhancedResearchAgent instance.
 
     Args:
         name: Name of the agent
         description: Optional description of the agent
+        session_id: Optional session ID for session-isolated conversation history
 
     Returns:
         A new EnhancedResearchAgent instance
@@ -168,25 +207,35 @@ def create_agent(name: str = "enhanced_agent", description: str = None) -> Enhan
     if description is None:
         description = "Enhanced research agent with MCP integration"
 
-    return EnhancedResearchAgent(name=name, description=description)
+    return EnhancedResearchAgent(name=name, description=description, session_id=session_id)
 
 # Main application function
-async def run_enhanced_agent(user_query: str, agent: EnhancedResearchAgent = None) -> str:
+async def run_enhanced_agent(user_query: str, agent: EnhancedResearchAgent = None, session_id: Optional[str] = None) -> str:
     """
     Run the enhanced agent with a user query.
 
     Args:
         user_query: The user's query string
         agent: The agent instance to use. If None, a new agent will be created (legacy behavior).
+        session_id: Optional session ID for session-aware processing
 
     Returns:
         The agent's response string
     """
     if agent is None:
         # Legacy fallback: create a new agent for backward compatibility
-        agent = create_agent()
-
-    return await agent.run(user_query)
+        agent = create_agent(session_id=session_id)
+    
+    # Log with privacy awareness
+    logger.info_user_input("Processing agent query", user_query)
+    
+    try:
+        result = await agent.run(user_query)
+        logger.info_agent_output("Agent response generated", result)
+        return result
+    except Exception as e:
+        logger.error(f"Agent error: {e}")
+        raise
 
 if __name__ == "__main__":
     print("🚀 Enhanced Research Agent - OpenManus + DSPy + MCP Integration")

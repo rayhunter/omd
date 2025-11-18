@@ -176,6 +176,37 @@ class LoggingConfig(BaseSettings):
         return v.upper()
 
 
+class PrivacyConfig(BaseSettings):
+    """Privacy and data protection configuration."""
+    
+    # Logging privacy
+    redact_user_input: bool = Field(True, description="Redact user prompts in logs")
+    redact_agent_output: bool = Field(False, description="Redact agent responses in logs")
+    redact_mcp_queries: bool = Field(True, description="Redact MCP query content in logs")
+    
+    # Session isolation
+    enable_session_isolation: bool = Field(True, description="Enable per-session conversation history")
+    session_timeout_seconds: int = Field(3600, description="Session timeout in seconds (default: 1 hour)")
+    auto_clear_on_logout: bool = Field(True, description="Automatically clear session data on logout")
+    
+    # Data retention
+    max_history_messages: int = Field(50, description="Maximum messages to keep in session history")
+    clear_history_on_timeout: bool = Field(True, description="Clear history when session times out")
+    
+    # Redaction settings
+    redaction_placeholder: str = Field("[REDACTED]", description="Text to show for redacted content")
+    show_length_hint: bool = Field(True, description="Show character count for redacted content")
+    
+    @validator('session_timeout_seconds')
+    def validate_timeout(cls, v):
+        """Validate session timeout is reasonable."""
+        if v < 60:
+            raise ValueError("Session timeout must be at least 60 seconds")
+        if v > 86400:  # 24 hours
+            raise ValueError("Session timeout cannot exceed 24 hours")
+        return v
+
+
 class LangfuseConfig(BaseSettings):
     """Langfuse observability configuration."""
     
@@ -243,6 +274,7 @@ class AppConfig(BaseSettings):
     database: DatabaseConfig = Field(default_factory=DatabaseConfig, description="Database configuration")
     security: SecurityConfig = Field(default_factory=SecurityConfig, description="Security configuration")
     logging: LoggingConfig = Field(default_factory=LoggingConfig, description="Logging configuration")
+    privacy: PrivacyConfig = Field(default_factory=PrivacyConfig, description="Privacy and data protection configuration")
     langfuse: LangfuseConfig = Field(default_factory=LangfuseConfig, description="Langfuse observability configuration")
     
     # MCP servers

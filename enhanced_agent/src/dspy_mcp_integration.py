@@ -27,6 +27,14 @@ except ImportError:
 from .dspy_modules import StructuredResearchPipeline, QuickAnalysis, ResearchPiplineResult
 from .mcp_client import MCPClient
 
+# Import privacy features
+try:
+    from privacy import get_redacted_logger
+    privacy_logger = get_redacted_logger(__name__)
+except ImportError:
+    import logging
+    privacy_logger = logging.getLogger(__name__)
+
 # Import Langfuse integration (optional, from project root)
 try:
     import sys
@@ -240,7 +248,8 @@ class DSPyMCPIntegration:
             """Execute a single MCP query with semaphore-based rate limiting."""
             async with self._mcp_semaphore:
                 try:
-                    print(f"🔍 MCP Query {index+1}/{len(limited_terms)}: '{term[:50]}{'...' if len(term) > 50 else ''}'")
+                    # Log with privacy
+                    privacy_logger.info_mcp_query(f"MCP Query {index+1}/{len(limited_terms)}", term)
 
                     # Query MCP for this search term with tracing
                     start_time = time.time()
@@ -358,7 +367,7 @@ class DSPyMCPIntegration:
             ) as span:
                 try:
                     pipeline_start = time.time()
-                    print(f"🚀 Starting DSPy+MCP research pipeline for: '{user_query[:60]}...'")
+                    privacy_logger.info_user_input("Starting DSPy+MCP research pipeline", user_query)
 
                     # Step 1: Analyze query with DSPy (skip if cached)
                     if analysis is None:
