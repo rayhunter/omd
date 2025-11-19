@@ -25,7 +25,7 @@ except ImportError:
         pass
 
 from .dspy_modules import StructuredResearchPipeline, QuickAnalysis, ResearchPiplineResult
-from .mcp_client import MCPClient
+from .unified_mcp_client import UnifiedMCPClient
 
 # Import privacy features
 try:
@@ -78,11 +78,11 @@ class DSPyMCPIntegration:
             enable_step_cache: Whether to cache intermediate steps for failure recovery
         """
 
-        # Initialize MCP client
+        # Initialize MCP client (using UnifiedMCPClient for full server support including web search)
         if mcp_config_path is None:
             mcp_config_path = str(Path(__file__).parent.parent / "config" / "mcp.json")
 
-        self.mcp_client = MCPClient(config_file=mcp_config_path)
+        self.mcp_client = UnifiedMCPClient(config=mcp_config_path)
 
         # Initialize DSPy
         self._setup_dspy(llm_model, dspy_cache)
@@ -215,7 +215,7 @@ class DSPyMCPIntegration:
                     'search_terms': [user_query]
                 }
     
-    async def gather_information(self, search_terms: List[str], max_queries: Optional[int] = None) -> str:
+    async def gather_information(self, search_terms: List[str], analysis: Dict[str, Any] = None, max_queries: Optional[int] = None) -> str:
         """
         Gather information using MCP client based on DSPy-generated search terms.
 
@@ -223,12 +223,30 @@ class DSPyMCPIntegration:
 
         Args:
             search_terms: List of search terms from DSPy analysis
+            analysis: Optional full analysis dictionary containing recommended sources
             max_queries: Maximum number of queries to make (defaults to config)
 
         Returns:
             Aggregated information from all MCP queries
         """
         max_queries = max_queries or self.config['max_mcp_queries']
+
+        # Determine selected servers from analysis
+        selected_servers = None
+        if analysis and 'recommended_sources' in analysis:
+            try:
+                # Get available servers
+                available_servers = self.mcp_client.list_enabled_servers()
+                
+                # Filter valid servers from recommendations
+                recommended = analysis['recommended_sources']
+                valid_servers = [s for s in recommended if s in available_servers]
+                
+                if valid_servers:
+                    selected_servers = valid_servers
+                    print(f"🤖 DSPy selected servers: {', '.join(selected_servers)}")
+            except Exception as e:
+                print(f"⚠️ Error processing recommended sources: {e}")
 
         # Parse search terms if they come as a single string with line breaks
         if len(search_terms) == 1 and '\n' in search_terms[0]:
@@ -255,37 +273,40 @@ class DSPyMCPIntegration:
 
                     # Query MCP for this search term with tracing
                     start_time = time.time()
-                    response = await self.mcp_client.search(term)
+                    # Pass selected_servers explicitly if determined by DSPy
+                    response = await self.mcp_client.search(term, servers=selected_servers)
                     elapsed_ms = (time.time() - start_time) * 1000
 
                     # Trace the MCP call
                     if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
+                        server_name = "multi" if selected_servers and len(selected_servers) > 1 else (selected_servers[0] if selected_servers else getattr(self.mcp_client, 'default_server', 'unknown'))
                         langfuse_manager.trace_mcp_call(
-                            server_name=getattr(self.mcp_client, 'default_server', 'unknown'),
+                            server_name=server_name,
                             query=term,
-                            response=response[:500] if response else "No response",
+                            response=str(response)[:500] if response else "No response",
                             latency_ms=elapsed_ms,
                             metadata={
                                 "query_index": index + 1,
                                 "total_queries": len(limited_terms),
-                                "response_length": len(response) if response else 0,
-                                "success": response and "Error:" not in response
+                                "response_length": len(str(response)) if response else 0,
+                                "success": response and "Error:" not in str(response),
+                                "servers_used": selected_servers
                             }
                         )
 
-                    if response and "Error:" not in response:
-                        print(f"   ✅ Got {len(response)} characters of information")
+                    if response and "Error:" not in str(response):
+                        print(f"   ✅ Got {len(str(response))} characters of information")
                         return {
                             "term": term,
-                            "response": response,
+                            "response": str(response),
                             "success": True,
                             "error": None
                         }
                     else:
-                        print(f"   ⚠️  Query failed or returned error: {response[:100]}...")
+                        print(f"   ⚠️  Query failed or returned error: {str(response)[:100]}...")
                         return {
                             "term": term,
-                            "response": response,
+                            "response": str(response),
                             "success": False,
                             "error": "Query returned error"
                         }
@@ -380,7 +401,7 @@ class DSPyMCPIntegration:
 
                     # Step 2: Gather information via MCP based on DSPy analysis (skip if cached)
                     if external_info is None:
-                        external_info = await self.gather_information(analysis['search_terms'])
+                        external_info = await self.gather_information(analysis['search_terms'], analysis=analysis)
                         # Cache external_info step
                         if self._step_cache is not None:
                             self._step_cache[cache_key]['external_info'] = external_info

@@ -79,6 +79,17 @@
       "capabilities": ["code_search", "repositories", "development_trends"],
       "description": "GitHub API for code search and repository information (requires token)"
     }
+  },
+  "server_selection_strategy": "auto",
+  "fallback_servers": ["web-search", "llama-mcp"],
+  "routing_rules": {
+    "current_events": ["web-search", "news-api"],
+    "news_updates_regulation_policy": ["web-search", "news-api"],
+    "scientific_research": ["arxiv", "web-search"],
+    "general_knowledge": ["wikipedia", "web-search"],
+    "code_related": ["github", "web-search"],
+    "financial": ["finance", "web-search"],
+    "weather": ["web-search"]
   }
 }
 

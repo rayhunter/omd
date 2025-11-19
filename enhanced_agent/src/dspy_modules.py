@@ -23,6 +23,7 @@ class QueryAnalysis(dspy.Signature):
     query_type: str = dspy.OutputField(description="Type of query: factual, analytical, creative, or procedural")
     information_needs: str = dspy.OutputField(description="Specific types of information needed to answer the query")
     search_terms: str = dspy.OutputField(description="Optimal search terms for external information gathering")
+    recommended_sources: str = dspy.OutputField(description="Recommended data sources: web_search, wikipedia, arxiv, news_api, finance, github, weather")
 
 
 class InformationSynthesis(dspy.Signature):
@@ -110,7 +111,8 @@ class StructuredResearchPipeline(dspy.Module):
             'sub_topics': [topic.strip() for topic in result.sub_topics.split(',')],
             'query_type': result.query_type,
             'information_needs': result.information_needs,
-            'search_terms': [term.strip() for term in result.search_terms.split(',')]
+            'search_terms': [term.strip() for term in result.search_terms.split(',')],
+            'recommended_sources': [source.strip() for source in result.recommended_sources.split(',')]
         }
         
         self._last_analysis = analysis
@@ -222,5 +224,6 @@ class QuickAnalysis(dspy.Module):
             'sub_topics': [topic.strip() for topic in result.sub_topics.split(',')],
             'query_type': result.query_type,
             'information_needs': result.information_needs,
-            'search_terms': [term.strip() for term in result.search_terms.split(',')]
+            'search_terms': [term.strip() for term in result.search_terms.split(',')],
+            'recommended_sources': [source.strip() for source in result.recommended_sources.split(',')]
         }

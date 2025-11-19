@@ -73,7 +73,8 @@
   "server_selection_strategy": "auto",
   "fallback_servers": ["llama-mcp", "web-search"],
   "routing_rules": {
-    "current_events": ["news-api", "web-search"],
+    "current_events": ["web-search", "news-api"],
+    "news_updates_regulation_policy": ["web-search", "news-api"],
     "scientific_research": ["arxiv", "web-search"],
     "general_knowledge": ["wikipedia", "llama-mcp"],
     "code_related": ["github", "web-search"],
