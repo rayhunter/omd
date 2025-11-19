@@ -165,7 +165,7 @@ class LangfuseManager:
     def trace_span(self, name: str, **kwargs):
         """
         Context manager for creating a traced span.
-        
+
         Usage:
             with langfuse_manager.trace_span("my_operation", metadata={"key": "value"}):
                 # do work
@@ -174,7 +174,7 @@ class LangfuseManager:
         if not self.enabled:
             yield None
             return
-        
+
         try:
             with self._client.start_as_current_span(name=name) as span:
                 # Automatically add session and user info to trace
@@ -183,24 +183,24 @@ class LangfuseManager:
                     trace_updates["session_id"] = self._current_session_id
                 if self._current_user_id:
                     trace_updates["user_id"] = self._current_user_id
-                
-                if trace_updates and span:
+
+                if trace_updates:
                     try:
-                        span.update_trace(**trace_updates)
+                        self._client.update_current_trace(**trace_updates)
                     except Exception:
                         # Silently ignore if no active trace
                         pass
-                
-                # Add any additional kwargs
+
+                # Add any additional kwargs to the span
                 if kwargs:
                     span.update(**kwargs)
-                
+
                 yield span
         except Exception as e:
             print(f"⚠️  Langfuse span error: {e}")
             yield None
     
-    def trace_llm_call(self, 
+    def trace_llm_call(self,
                        model: str,
                        input_text: str,
                        output_text: str,
@@ -208,35 +208,43 @@ class LangfuseManager:
                        usage: Optional[Dict[str, int]] = None):
         """
         Manually trace an LLM call.
-        
+
         Args:
             model: Model name (e.g., "gpt-3.5-turbo")
             input_text: Input prompt
             output_text: Model response
             metadata: Additional metadata
-            usage: Token usage dict with 'prompt_tokens', 'completion_tokens', 'total_tokens'
+            usage: Token usage dict with 'input', 'output', 'total' keys
         """
         if not self.enabled:
             return
-        
+
         try:
-            # Create a generation observation
-            generation = self._client.start_observation(
+            # Create a generation using context manager
+            with self._client.start_as_current_generation(
                 name=f"llm_call_{model}",
-                as_type="generation",
-                model=model,
-                input=input_text,
-                metadata=metadata or {}
-            )
-            
-            # Update with output and usage
-            generation.update(
-                output=output_text,
-                usage=usage
-            )
-            
-            # End the observation
-            generation.end()
+                model=model
+            ) as generation:
+                # Add session info to trace
+                trace_updates = {}
+                if self._current_session_id:
+                    trace_updates["session_id"] = self._current_session_id
+                if self._current_user_id:
+                    trace_updates["user_id"] = self._current_user_id
+
+                if trace_updates:
+                    try:
+                        self._client.update_current_trace(**trace_updates)
+                    except Exception:
+                        pass
+
+                # Update generation with input, output, usage, and metadata
+                generation.update(
+                    input=input_text,
+                    output=output_text,
+                    usage=usage,
+                    metadata=metadata or {}
+                )
         except Exception as e:
             print(f"⚠️  Error tracing LLM call: {e}")
     
@@ -247,7 +255,7 @@ class LangfuseManager:
                         metadata: Optional[Dict[str, Any]] = None):
         """
         Trace an agent reasoning step.
-        
+
         Args:
             step_type: Type of step (e.g., "think", "act", "observe")
             input_data: Input to the step
@@ -256,17 +264,24 @@ class LangfuseManager:
         """
         if not self.enabled:
             return
-        
+
         try:
             with self._client.start_as_current_span(
                 name=f"agent_step_{step_type}"
             ) as span:
                 # Add session info to trace
+                trace_updates = {}
                 if self._current_session_id:
-                    span.update_trace(session_id=self._current_session_id)
+                    trace_updates["session_id"] = self._current_session_id
                 if self._current_user_id:
-                    span.update_trace(user_id=self._current_user_id)
-                
+                    trace_updates["user_id"] = self._current_user_id
+
+                if trace_updates:
+                    try:
+                        self._client.update_current_trace(**trace_updates)
+                    except Exception:
+                        pass
+
                 span.update(
                     input=str(input_data),
                     output=str(output_data),
@@ -284,7 +299,7 @@ class LangfuseManager:
                       metadata: Optional[Dict[str, Any]] = None):
         """
         Trace an MCP server call.
-        
+
         Args:
             server_name: Name of the MCP server
             query: Query sent to server
@@ -294,22 +309,29 @@ class LangfuseManager:
         """
         if not self.enabled:
             return
-        
+
         try:
             meta = metadata or {}
             if latency_ms:
                 meta['latency_ms'] = latency_ms
             meta['server'] = server_name
-            
+
             with self._client.start_as_current_span(
                 name=f"mcp_call_{server_name}"
             ) as span:
                 # Add session info to trace
+                trace_updates = {}
                 if self._current_session_id:
-                    span.update_trace(session_id=self._current_session_id)
+                    trace_updates["session_id"] = self._current_session_id
                 if self._current_user_id:
-                    span.update_trace(user_id=self._current_user_id)
-                
+                    trace_updates["user_id"] = self._current_user_id
+
+                if trace_updates:
+                    try:
+                        self._client.update_current_trace(**trace_updates)
+                    except Exception:
+                        pass
+
                 span.update(
                     input=query,
                     output=response,

@@ -38,17 +38,19 @@ except ImportError:
 # Import Langfuse integration (optional, from project root)
 try:
     import sys
-    # Only temporarily add to path if langfuse_integration is needed
+    # Add project root to path for import (keep it if needed by other imports)
     project_root = Path(__file__).parent.parent.parent
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from langfuse_integration import langfuse_manager
-    sys.path.remove(str(project_root))  # Clean up after import
     LANGFUSE_AVAILABLE = True
-except ImportError:
+except (ImportError, Exception):
     LANGFUSE_AVAILABLE = False
     langfuse_manager = None
-    print("⚠️  Langfuse integration not available")
+    # Only print warning if explicitly debugging
+    import os
+    if os.getenv('DEBUG', '').lower() == 'true':
+        print("⚠️  Langfuse integration not available")
 
 
 class DSPyMCPIntegration:

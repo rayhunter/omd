@@ -3,6 +3,7 @@ Test script to validate Langfuse configuration setup.
 Run this to ensure Step 1 is working correctly.
 """
 
+import sys
 from pathlib import Path
 
 # Project root

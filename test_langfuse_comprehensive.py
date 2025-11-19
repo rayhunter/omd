@@ -23,7 +23,7 @@ def test_llm_call():
         input_text="What is the capital of France?",
         output_text="The capital of France is Paris.",
         metadata={"test": "llm_call", "provider": "openai"},
-        usage={"prompt_tokens": 10, "completion_tokens": 8, "total_tokens": 18}
+        usage={"input": 10, "output": 8, "total": 18}
     )
     print("   ✅ LLM call traced")
 
@@ -84,43 +84,43 @@ def test_nested_traces():
 def test_trace_with_metadata():
     """Test trace with rich metadata."""
     print("\n6️⃣  Testing trace with rich metadata...")
-    
-    langfuse_manager.update_current_trace(
-        name="comprehensive_test",
-        user_id="test_user_123",
-        session_id="test_session_456",
-        tags=["test", "comprehensive", "metadata"],
-        metadata={
-            "environment": "test",
-            "version": "1.0.0",
-            "timestamp": time.time(),
-            "test_type": "comprehensive"
-        }
-    )
-    
+
     with langfuse_manager.trace_span("metadata_test"):
+        # Update trace metadata while inside the span context
+        langfuse_manager.update_current_trace(
+            name="comprehensive_test",
+            user_id="test_user_123",
+            session_id="test_session_456",
+            tags=["test", "comprehensive", "metadata"],
+            metadata={
+                "environment": "test",
+                "version": "1.0.0",
+                "timestamp": time.time(),
+                "test_type": "comprehensive"
+            }
+        )
         print("   ✅ Trace with metadata created")
 
 def test_scoring():
     """Test trace scoring."""
     print("\n7️⃣  Testing trace scoring...")
-    
+
     with langfuse_manager.trace_span("scored_operation"):
         time.sleep(0.05)
-    
-    # Score the trace
-    langfuse_manager.score_current_trace(
-        name="quality",
-        value=0.95,
-        comment="Test score for comprehensive test"
-    )
-    
-    langfuse_manager.score_current_trace(
-        name="user_feedback",
-        value=1.0,
-        comment="Positive test feedback"
-    )
-    
+
+        # Score the trace while inside the span context
+        langfuse_manager.score_current_trace(
+            name="quality",
+            value=0.95,
+            comment="Test score for comprehensive test"
+        )
+
+        langfuse_manager.score_current_trace(
+            name="user_feedback",
+            value=1.0,
+            comment="Positive test feedback"
+        )
+
     print("   ✅ Trace scored")
 
 def main():

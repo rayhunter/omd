@@ -56,8 +56,8 @@ class LLMConfig(BaseSettings):
     api_version: Optional[str] = Field(None, description="Azure API version")
     deployment_id: Optional[str] = Field(None, description="Azure deployment ID")
     
-    @field_validator('api_key', mode='before')
     @classmethod
+    @field_validator('api_key', mode='before')
     def validate_api_key(cls, v, info):
         """Validate API key based on provider."""
         if info.data:
@@ -70,8 +70,8 @@ class LLMConfig(BaseSettings):
                     raise ValueError(f"API key required for {provider} in production")
         return v
     
-    @field_validator('base_url', mode='before')
     @classmethod
+    @field_validator('base_url', mode='before')
     def set_default_base_url(cls, v, info):
         """Set default base URL based on provider."""
         if v is None and info.data:
@@ -87,9 +87,11 @@ class LLMConfig(BaseSettings):
 
 class MCPServerConfig(BaseSettings):
     """MCP server configuration."""
-    
+
+    model_config = SettingsConfigDict(extra="allow")  # Allow extra fields from config
+
     name: str = Field(..., description="Server name")
-    type: str = Field(..., description="Server type")
+    type: str = Field("default", description="Server type")
     url: str = Field(..., description="Server URL")
     model: Optional[str] = Field(None, description="Model name for the server")
     api_key: Optional[str] = Field(None, description="API key if required")
@@ -114,19 +116,20 @@ class DatabaseConfig(BaseSettings):
     pool_size: int = Field(10, description="Connection pool size")
     max_overflow: int = Field(20, description="Max pool overflow")
     
-    @validator('url', pre=True)
-    def build_url(cls, v, values):
+    @classmethod
+    @field_validator('url', mode='before')
+    def build_url(cls, v, info):
         """Build database URL if not provided."""
         if v is None:
-            driver = values.get('driver', 'sqlite')
+            driver = info.data.get('driver', 'sqlite')
             if driver == 'sqlite':
                 return f"sqlite:///./omd.db"
             else:
-                host = values.get('host', 'localhost')
-                port = values.get('port', 5432)
-                name = values.get('name', 'omd')
-                username = values.get('username', '')
-                password = values.get('password', '')
+                host = info.data.get('host', 'localhost')
+                port = info.data.get('port', 5432)
+                name = info.data.get('name', 'omd')
+                username = info.data.get('username', '')
+                password = info.data.get('password', '')
                 if username and password:
                     return f"{driver}://{username}:{password}@{host}:{port}/{name}"
                 else:
@@ -143,7 +146,8 @@ class SecurityConfig(BaseSettings):
     max_request_size: int = Field(10 * 1024 * 1024, description="Max request size in bytes")
     session_timeout: int = Field(3600, description="Session timeout in seconds")
     
-    @validator('secret_key', pre=True)
+    @field_validator('secret_key', mode='before')
+    @classmethod
     def validate_secret_key(cls, v):
         """Validate secret key."""
         if not v:
@@ -167,7 +171,8 @@ class LoggingConfig(BaseSettings):
     backup_count: int = Field(5, description="Number of backup files")
     json_logs: bool = Field(False, description="Use JSON logging format")
     
-    @validator('level')
+    @field_validator('level')
+    @classmethod
     def validate_level(cls, v):
         """Validate logging level."""
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
@@ -197,7 +202,8 @@ class PrivacyConfig(BaseSettings):
     redaction_placeholder: str = Field("[REDACTED]", description="Text to show for redacted content")
     show_length_hint: bool = Field(True, description="Show character count for redacted content")
     
-    @validator('session_timeout_seconds')
+    @field_validator('session_timeout_seconds')
+    @classmethod
     def validate_timeout(cls, v):
         """Validate session timeout is reasonable."""
         if v < 60:
@@ -228,15 +234,17 @@ class LangfuseConfig(BaseSettings):
     # Cost tracking
     track_costs: bool = Field(True, description="Track and calculate costs")
     
-    @validator('public_key', 'secret_key', pre=True)
-    def validate_keys(cls, v, field):
+    @field_validator('public_key', 'secret_key', mode='before')
+    @classmethod
+    def validate_keys(cls, v, info):
         """Validate Langfuse keys from environment."""
         if v is None:
-            env_var = f"LANGFUSE_{field.name.upper()}"
+            env_var = f"LANGFUSE_{info.field_name.upper()}"
             v = os.getenv(env_var)
         return v
     
-    @validator('sample_rate')
+    @field_validator('sample_rate')
+    @classmethod
     def validate_sample_rate(cls, v):
         """Validate sample rate is between 0 and 1."""
         if not 0.0 <= v <= 1.0:
@@ -281,54 +289,65 @@ class AppConfig(BaseSettings):
     mcp_servers: Dict[str, MCPServerConfig] = Field(default_factory=dict, description="MCP server configurations")
     default_mcp_server: str = Field("llama-mcp", description="Default MCP server")
     
-    @validator('environment', pre=True)
+    @field_validator('environment', mode='before')
+    @classmethod
     def validate_environment(cls, v):
         """Validate and normalize environment."""
         if isinstance(v, str):
             return Environment(v.lower())
         return v
     
-    @root_validator
-    def validate_production_settings(cls, values):
+    @model_validator(mode='after')
+    def validate_production_settings(self):
         """Validate production-specific settings."""
-        env = values.get('environment')
-        if env == Environment.PRODUCTION:
+        if self.environment == Environment.PRODUCTION:
             # Ensure debug is False in production
-            values['debug'] = False
-            
+            self.debug = False
+
             # Ensure critical settings are configured
-            llm = values.get('llm', {})
-            if isinstance(llm, dict) and not llm.get('api_key'):
+            if isinstance(self.llm, dict) and not self.llm.get('api_key'):
                 raise ValueError("LLM API key is required in production")
-                
-        return values
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
-        
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings: SettingsSourceCallable,
-            env_settings: SettingsSourceCallable,
-            file_secret_settings: SettingsSourceCallable,
-        ) -> tuple[SettingsSourceCallable, ...]:
-            """Customize settings sources to include config files."""
-            return (
-                init_settings,
-                env_settings,
-                file_secret_settings,
-                toml_settings_source,
-                json_settings_source,
-            )
+
+        return self
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="allow",  # Allow extra fields from config files
+    )
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls,
+        init_settings,
+        env_settings,
+        dotenv_settings,
+        file_secret_settings,
+    ):
+        """Customize settings sources to include TOML and JSON files."""
+        # Wrap the functions to create proper callables
+        def toml_source():
+            return toml_settings_source(settings_cls)
+
+        def json_source():
+            return json_settings_source(settings_cls)
+
+        return (
+            init_settings,
+            toml_source,
+            json_source,
+            env_settings,
+            dotenv_settings,
+            file_secret_settings,
+        )
 
 
-def toml_settings_source(settings: BaseSettings) -> Dict[str, Any]:
+def toml_settings_source(settings_cls) -> Dict[str, Any]:
     """Load settings from TOML files."""
     config_data = {}
-    
+
     # Look for environment-specific config first
     env = os.getenv('ENVIRONMENT', 'development')
     config_files = [
@@ -336,46 +355,53 @@ def toml_settings_source(settings: BaseSettings) -> Dict[str, Any]:
         "config/config.toml",
         "OpenManus/config/config.toml",
     ]
-    
+
     for config_file in config_files:
         if Path(config_file).exists():
             with open(config_file, 'rb') as f:
-                config_data.update(tomllib.load(f))
+                toml_data = tomllib.load(f)
+
+            # Handle nested key mappings (e.g., llm.vision -> llm_vision)
+            if 'llm' in toml_data and isinstance(toml_data['llm'], dict):
+                if 'vision' in toml_data['llm']:
+                    config_data['llm_vision'] = toml_data['llm'].pop('vision')
+
+            config_data.update(toml_data)
             break
-    
+
     return config_data
 
 
-def json_settings_source(settings: BaseSettings) -> Dict[str, Any]:
+def json_settings_source(settings_cls) -> Dict[str, Any]:
     """Load settings from JSON files."""
     config_data = {}
-    
+
     # Load MCP configurations
     mcp_files = [
         "config/mcp.json",
         "enhanced_agent/config/mcp_extended.json",
         "enhanced_agent/config/mcp.json",
     ]
-    
+
     mcp_servers = {}
     for mcp_file in mcp_files:
         if Path(mcp_file).exists():
             with open(mcp_file, 'r') as f:
                 mcp_data = json.load(f)
-                
+
             # Extract servers
             if 'servers' in mcp_data:
                 for name, server_config in mcp_data['servers'].items():
                     server_config['name'] = name
                     mcp_servers[name] = server_config
-                    
+
             # Extract default server
             if 'default_server' in mcp_data:
                 config_data['default_mcp_server'] = mcp_data['default_server']
-    
+
     if mcp_servers:
         config_data['mcp_servers'] = mcp_servers
-    
+
     return config_data
 
 
