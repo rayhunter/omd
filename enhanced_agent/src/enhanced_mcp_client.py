@@ -13,7 +13,7 @@ class EnhancedMCPClient:
         """Initialize Enhanced MCP client with configuration file."""
         if config_file is None:
             # Use absolute path to config file
-            config_file = Path(__file__).parent.parent / "config" / "mcp_extended.json"
+            config_file = Path(__file__).parent.parent / "config" / "mcp.json"
         self.config = self._load_config(config_file)
         self.default_server = self.config.get("default_server", "llama-mcp")
         self.routing_rules = self.config.get("routing_rules", {})
@@ -100,6 +100,8 @@ class EnhancedMCPClient:
             "ollama": self._ollama_search,
             "web_search": self._web_search,
             "wikipedia": self._wikipedia_search,
+            "wikidata": self._wikidata_search,
+            "dbpedia": self._dbpedia_search,
             "arxiv": self._arxiv_search,
             "news": self._news_search,
             "github": self._github_search,
@@ -204,10 +206,95 @@ class EnhancedMCPClient:
                 return f"Wikipedia ({title}): {snippet}"
             
             return "No Wikipedia articles found for this query."
-            
+
         except requests.exceptions.RequestException as e:
             return f"Error: Could not search Wikipedia. ({str(e)})"
-    
+
+    def _wikidata_search(self, query: str, config: Dict[str, Any]) -> str:
+        """Search using Wikidata SPARQL endpoint."""
+        try:
+            url = config["url"]
+
+            # Simple SPARQL query to search for entities
+            sparql_query = f"""
+            SELECT ?item ?itemLabel ?description WHERE {{
+              ?item ?label "{query}"@en.
+              ?item schema:description ?description.
+              FILTER(LANG(?description) = "en")
+              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+            }}
+            LIMIT 5
+            """
+
+            params = {
+                "query": sparql_query,
+                "format": "json"
+            }
+
+            response = requests.get(url, params=params, timeout=config.get("timeout", 30))
+            response.raise_for_status()
+
+            data = response.json()
+            results = data.get("results", {}).get("bindings", [])
+
+            if results:
+                formatted_results = []
+                for result in results[:3]:
+                    label = result.get("itemLabel", {}).get("value", "Unknown")
+                    description = result.get("description", {}).get("value", "No description")
+                    formatted_results.append(f"🔍 {label}: {description}")
+                return "\n".join(formatted_results)
+
+            return "No Wikidata entities found for this query."
+
+        except requests.exceptions.RequestException as e:
+            return f"Error: Could not search Wikidata. ({str(e)})"
+
+    def _dbpedia_search(self, query: str, config: Dict[str, Any]) -> str:
+        """Search using DBpedia SPARQL endpoint."""
+        try:
+            url = config["url"]
+
+            # Simple SPARQL query to search DBpedia
+            sparql_query = f"""
+            PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+            PREFIX dbo: <http://dbpedia.org/ontology/>
+
+            SELECT ?subject ?label ?abstract WHERE {{
+              ?subject rdfs:label ?label.
+              ?subject dbo:abstract ?abstract.
+              FILTER(LANG(?label) = "en" && LANG(?abstract) = "en")
+              FILTER(regex(?label, "{query}", "i"))
+            }}
+            LIMIT 3
+            """
+
+            params = {
+                "query": sparql_query,
+                "format": "json"
+            }
+
+            response = requests.get(url, params=params, timeout=config.get("timeout", 30))
+            response.raise_for_status()
+
+            data = response.json()
+            results = data.get("results", {}).get("bindings", [])
+
+            if results:
+                formatted_results = []
+                for result in results:
+                    label = result.get("label", {}).get("value", "Unknown")
+                    abstract = result.get("abstract", {}).get("value", "No description")
+                    # Truncate abstract
+                    abstract = abstract[:200] + "..." if len(abstract) > 200 else abstract
+                    formatted_results.append(f"📚 {label}: {abstract}")
+                return "\n".join(formatted_results)
+
+            return "No DBpedia resources found for this query."
+
+        except requests.exceptions.RequestException as e:
+            return f"Error: Could not search DBpedia. ({str(e)})"
+
     def _arxiv_search(self, query: str, config: Dict[str, Any]) -> str:
         """Search using arXiv API."""
         try:
@@ -383,9 +470,23 @@ class EnhancedMCPClient:
         except requests.exceptions.RequestException as e:
             return f"Error: Could not connect to Playwright MCP server. ({str(e)})"
     
-    def list_servers(self) -> List[str]:
-        """List available MCP servers."""
-        return list(self.config["servers"].keys())
+    def list_servers(self, include_disabled: bool = False) -> List[str]:
+        """
+        List available MCP servers.
+
+        Args:
+            include_disabled: If True, include disabled servers. Default is False.
+
+        Returns:
+            List of server names
+        """
+        if include_disabled:
+            return list(self.config["servers"].keys())
+        else:
+            return [
+                name for name, config in self.config["servers"].items()
+                if config.get("enabled", True)  # Default to True if not specified
+            ]
     
     def get_server_info(self, server_name: str) -> Optional[Dict[str, Any]]:
         """Get information about a specific server."""

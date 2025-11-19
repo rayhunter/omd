@@ -121,14 +121,14 @@ class LangfuseManager:
     def set_session(self, session_id: str, user_id: Optional[str] = None):
         """
         Set the current session ID for grouping traces.
-        
+
         Args:
             session_id: Unique identifier for this session
             user_id: Optional user identifier
-        
+
         Usage:
             langfuse_manager.set_session("session-123", user_id="user-456")
-        
+
         Note:
             Session info is stored and will be automatically added to all future
             trace spans. No need to have an active trace when calling this.
@@ -136,6 +136,7 @@ class LangfuseManager:
         self._current_session_id = session_id
         if user_id:
             self._current_user_id = user_id
+        print(f"📊 Langfuse: Session context set - session_id={session_id}, user_id={user_id or 'None'}")
     
     def set_user(self, user_id: str):
         """
@@ -152,8 +153,10 @@ class LangfuseManager:
     
     def clear_session(self):
         """Clear the current session ID."""
+        old_session_id = self._current_session_id
         self._current_session_id = None
         self._current_user_id = None
+        print(f"🧹 Langfuse: Session context cleared - was session_id={old_session_id}")
     
     def shutdown(self):
         """Shutdown and flush remaining events."""
@@ -187,9 +190,11 @@ class LangfuseManager:
                 if trace_updates:
                     try:
                         self._client.update_current_trace(**trace_updates)
-                    except Exception:
+                        # Debug logging for session ID injection
+                        print(f"🔍 Langfuse: Injected session_id={self._current_session_id} into trace '{name}'")
+                    except Exception as e:
                         # Silently ignore if no active trace
-                        pass
+                        print(f"⚠️  Warning: Failed to inject session_id into trace '{name}': {e}")
 
                 # Add any additional kwargs to the span
                 if kwargs:

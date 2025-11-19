@@ -19,6 +19,8 @@ class ServerType(str, Enum):
     OLLAMA = "ollama"
     WEB_SEARCH = "web_search"
     WIKIPEDIA = "wikipedia"
+    WIKIDATA = "wikidata"
+    DBPEDIA = "dbpedia"
     ARXIV = "arxiv"
     NEWS = "news"
     GITHUB = "github"

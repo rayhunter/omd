@@ -220,6 +220,8 @@ class UnifiedMCPClient:
             ServerType.OLLAMA: self._handle_ollama,
             ServerType.WEB_SEARCH: self._handle_web_search,
             ServerType.WIKIPEDIA: self._handle_wikipedia,
+            ServerType.WIKIDATA: self._handle_wikidata,
+            ServerType.DBPEDIA: self._handle_dbpedia,
             ServerType.ARXIV: self._handle_arxiv,
             ServerType.NEWS: self._handle_news,
             ServerType.GITHUB: self._handle_github,
@@ -340,6 +342,99 @@ class UnifiedMCPClient:
 
         except Exception as e:
             return f"Error: Could not search Wikipedia. ({str(e)})"
+
+    async def _handle_wikidata(self, query: str, config: ServerConfig) -> str:
+        """Handle Wikidata SPARQL queries for structured knowledge"""
+        try:
+            timeout = httpx.Timeout(config.timeout, connect=10.0)
+
+            # Build SPARQL query to search for entities
+            sparql_query = f"""
+            SELECT ?item ?itemLabel ?itemDescription WHERE {{
+              SERVICE wikibase:mwapi {{
+                bd:serviceParam wikibase:api "EntitySearch" .
+                bd:serviceParam wikibase:endpoint "www.wikidata.org" .
+                bd:serviceParam mwapi:search "{query}" .
+                bd:serviceParam mwapi:language "en" .
+                ?item wikibase:apiOutputItem mwapi:item .
+              }}
+              SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en". }}
+            }}
+            LIMIT 3
+            """
+
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                response = await client.get(
+                    config.url,
+                    params={
+                        "query": sparql_query,
+                        "format": "json"
+                    }
+                )
+                response.raise_for_status()
+
+                data = response.json()
+                results = []
+
+                for binding in data.get("results", {}).get("bindings", []):
+                    label = binding.get("itemLabel", {}).get("value", "Unknown")
+                    description = binding.get("itemDescription", {}).get("value", "No description")
+                    item_id = binding.get("item", {}).get("value", "").split("/")[-1]
+
+                    results.append(f"🔷 {label} ({item_id}): {description}")
+
+                if results:
+                    return "Wikidata entities:\n" + "\n".join(results)
+                else:
+                    return "No Wikidata entities found for this query."
+
+        except Exception as e:
+            return f"Error: Could not search Wikidata. ({str(e)})"
+
+    async def _handle_dbpedia(self, query: str, config: ServerConfig) -> str:
+        """Handle DBpedia SPARQL queries for structured Wikipedia data"""
+        try:
+            timeout = httpx.Timeout(config.timeout, connect=10.0)
+
+            # Use DBpedia Lookup service first for better entity matching
+            lookup_url = "https://lookup.dbpedia.org/api/search"
+
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                # Try DBpedia Lookup service (simpler and more reliable)
+                response = await client.get(
+                    lookup_url,
+                    params={
+                        "query": query,
+                        "maxResults": 3,
+                        "format": "json"
+                    }
+                )
+                response.raise_for_status()
+
+                data = response.json()
+                results = []
+
+                for doc in data.get("docs", []):
+                    label = doc.get("label", ["Unknown"])[0] if isinstance(doc.get("label"), list) else doc.get("label", "Unknown")
+                    description = doc.get("comment", ["No description"])[0] if isinstance(doc.get("comment"), list) else doc.get("comment", "No description")
+
+                    # Clean HTML tags from label and description
+                    if isinstance(label, str):
+                        label = re.sub(r'<[^>]+>', '', label)
+                    if isinstance(description, str):
+                        description = re.sub(r'<[^>]+>', '', description)
+                        # Truncate long descriptions
+                        description = description[:300] + "..." if len(description) > 300 else description
+
+                    results.append(f"📘 {label}: {description}")
+
+                if results:
+                    return "DBpedia results:\n" + "\n".join(results)
+                else:
+                    return "No DBpedia resources found for this query."
+
+        except Exception as e:
+            return f"Error: Could not search DBpedia. ({str(e)})"
 
     async def _handle_arxiv(self, query: str, config: ServerConfig) -> str:
         """Handle arXiv API requests"""
@@ -534,6 +629,11 @@ class UnifiedMCPClient:
             return f"Error: Could not connect to Playwright MCP server. ({str(e)})"
 
     # ==================== Utility Methods ====================
+
+    @property
+    def default_server(self) -> str:
+        """Get the default server name (backward compatibility property)"""
+        return self.config.default_server
 
     def list_servers(self) -> List[str]:
         """List all available server names"""

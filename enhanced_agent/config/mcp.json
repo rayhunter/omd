@@ -1,13 +1,114 @@
 {
+  "default_mcp_server": "web-search",
+  "server_selection_strategy": "auto",
+  "fallback_servers": ["web-search", "llama-mcp"],
   "servers": {
+    "web-search": {
+      "name": "web-search",
+      "type": "web_search",
+      "url": "https://api.duckduckgo.com",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.5,
+      "enabled": true,
+      "capabilities": ["current_events", "web_search", "real_time_data"],
+      "description": "DuckDuckGo web search for current information"
+    },
     "llama-mcp": {
+      "name": "llama-mcp",
+      "type": "ollama",
       "url": "http://localhost:11434",
       "model": "gemma2:2b",
       "context_length": 4096,
       "temperature": 0.7,
       "max_tokens": 1024,
-      "timeout": 60
+      "timeout": 60,
+      "enabled": true,
+      "capabilities": ["general_knowledge", "reasoning", "analysis"],
+      "description": "Local Ollama model for general knowledge and reasoning"
+    },
+    "wikidata": {
+      "name": "wikidata",
+      "type": "wikidata",
+      "url": "https://query.wikidata.org/sparql",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["structured_knowledge", "factual_data", "entities", "relationships"],
+      "description": "Wikidata structured knowledge base with verified facts and provenance"
+    },
+    "dbpedia": {
+      "name": "dbpedia",
+      "type": "dbpedia",
+      "url": "https://dbpedia.org/sparql",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["encyclopedic_knowledge", "structured_data", "linked_data"],
+      "description": "DBpedia structured Wikipedia data with 850M+ semantic triples"
+    },
+    "wikipedia": {
+      "name": "wikipedia",
+      "type": "wikipedia",
+      "url": "https://en.wikipedia.org/api/rest_v1",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": false,
+      "capabilities": ["encyclopedic_knowledge", "factual_data", "historical_info"],
+      "description": "Wikipedia API for encyclopedic knowledge (deprecated - use Wikidata/DBpedia)"
+    },
+    "arxiv": {
+      "name": "arxiv",
+      "type": "arxiv",
+      "url": "https://export.arxiv.org/api/query",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["scientific_research", "academic_papers", "latest_research"],
+      "description": "arXiv API for scientific papers and research"
+    },
+    "news-api": {
+      "name": "news-api",
+      "type": "news",
+      "url": "https://newsapi.org/v2",
+      "api_key": "${NEWS_API_KEY}",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.5,
+      "max_results": 5,
+      "enabled": true,
+      "capabilities": ["breaking_news", "current_events", "global_news", "headlines"],
+      "description": "News API for current news and breaking events"
+    },
+    "weather": {
+      "name": "weather",
+      "type": "weather",
+      "url": "https://api.openweathermap.org/data/2.5",
+      "api_key": "${WEATHER_API_KEY}",
+      "timeout": 30,
+      "max_tokens": 512,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["current_weather", "forecasts", "climate_data"],
+      "description": "OpenWeatherMap API for weather information"
     }
   },
-  "default_server": "llama-mcp"
+  "routing_rules": {
+    "current_events": ["news-api", "web-search"],
+    "breaking_news": ["news-api", "web-search"],
+    "news": ["news-api", "web-search"],
+    "weather": ["weather"],
+    "forecast": ["weather"],
+    "scientific_research": ["arxiv", "wikidata", "web-search"],
+    "general_knowledge": ["wikidata", "dbpedia", "web-search"],
+    "factual": ["wikidata", "dbpedia", "web-search"],
+    "encyclopedic": ["wikidata", "dbpedia"],
+    "historical": ["wikidata", "dbpedia", "web-search"],
+    "entities": ["wikidata"],
+    "structured": ["wikidata", "dbpedia"]
+  }
 }
