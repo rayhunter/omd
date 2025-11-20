@@ -85,8 +85,13 @@
   "routing_rules": {
     "current_events": ["web-search", "news-api"],
     "news_updates_regulation_policy": ["web-search", "news-api"],
-    "scientific_research": ["arxiv", "web-search"],
-    "general_knowledge": ["wikipedia", "web-search"],
+    "scientific_research": ["arxiv", "wikidata", "web-search"],
+    "general_knowledge": ["wikidata", "dbpedia", "web-search"],
+    "factual": ["wikidata", "dbpedia", "web-search"],
+    "encyclopedic": ["wikidata", "dbpedia"],
+    "historical": ["wikidata", "dbpedia", "web-search"],
+    "entities": ["wikidata"],
+    "structured": ["wikidata", "dbpedia"],
     "code_related": ["github", "web-search"],
     "financial": ["finance", "web-search"],
     "weather": ["web-search"]

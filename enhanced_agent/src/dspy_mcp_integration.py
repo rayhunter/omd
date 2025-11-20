@@ -246,18 +246,25 @@ class DSPyMCPIntegration:
                 for rec in recommended:
                     rec_lower = rec.lower().replace(' ', '-').replace('_', '-')
                     # Map common variations to actual server names
-                    if 'finance' in rec_lower or 'yahoo' in rec_lower or 'stock' in rec_lower:
+                    if 'wikidata' in rec_lower:
+                        normalized_recommended.append('wikidata')
+                    elif 'dbpedia' in rec_lower:
+                        normalized_recommended.append('dbpedia')
+                    elif 'finance' in rec_lower or 'yahoo' in rec_lower or 'stock' in rec_lower or 'market' in rec_lower:
                         normalized_recommended.append('finance')
                     elif 'news' in rec_lower:
                         normalized_recommended.append('web-search')  # Prefer web-search over news-api (no key needed)
-                    elif 'web' in rec_lower or 'search' in rec_lower or 'google' in rec_lower:
+                    elif 'web' in rec_lower or 'search' in rec_lower or 'google' in rec_lower or 'duckduckgo' in rec_lower:
                         normalized_recommended.append('web-search')
-                    elif 'wiki' in rec_lower:
-                        normalized_recommended.append('wikipedia')
-                    elif 'arxiv' in rec_lower or 'paper' in rec_lower or 'research' in rec_lower:
+                    elif 'wikipedia' in rec_lower:
+                        # Wikipedia is deprecated, map to wikidata + dbpedia
+                        normalized_recommended.extend(['wikidata', 'dbpedia'])
+                    elif 'arxiv' in rec_lower or 'paper' in rec_lower:
                         normalized_recommended.append('arxiv')
                     elif 'github' in rec_lower or 'code' in rec_lower:
                         normalized_recommended.append('github')
+                    elif 'llama' in rec_lower or 'ollama' in rec_lower:
+                        normalized_recommended.append('llama-mcp')
                     else:
                         # Try direct match
                         normalized_recommended.append(rec)

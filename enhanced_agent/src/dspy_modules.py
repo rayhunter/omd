@@ -23,7 +23,7 @@ class QueryAnalysis(dspy.Signature):
     query_type: str = dspy.OutputField(description="Type of query: factual, analytical, creative, or procedural")
     information_needs: str = dspy.OutputField(description="Specific types of information needed to answer the query")
     search_terms: str = dspy.OutputField(description="Optimal search terms for external information gathering")
-    recommended_sources: str = dspy.OutputField(description="Recommended MCP server names (comma-separated, choose from: web-search, wikipedia, arxiv, news-api, finance, github, llama-mcp). For stock data use 'finance'. For news use 'web-search' or 'news-api'. For general knowledge use 'wikipedia' or 'llama-mcp'.")
+    recommended_sources: str = dspy.OutputField(description="Recommended MCP server names (comma-separated, choose from: wikidata, dbpedia, web-search, arxiv, news-api, finance, github, llama-mcp). For factual/encyclopedic knowledge use 'wikidata' and 'dbpedia'. For stock data use 'finance'. For news use 'web-search'. For scientific research use 'arxiv' and 'wikidata'.")
 
 
 class InformationSynthesis(dspy.Signature):
