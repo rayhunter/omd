@@ -11,8 +11,11 @@ langfuse>=3.6.0
 
 # Data processing and utilities
 requests>=2.32.0
-pydantic>=2.11.0
+pydantic>=2.12.0
 loguru>=0.7.0
+
+# MCP SDK for protocol communication
+mcp>=1.21.0
 
 # Additional dependencies that might be needed
 pathlib2>=2.3.7

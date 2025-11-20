@@ -19,6 +19,7 @@ from pathlib import Path
 from urllib.parse import quote_plus
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
+from loguru import logger
 
 from .mcp_config import (
     MCPConfig,
@@ -27,6 +28,7 @@ from .mcp_config import (
     RoutingStrategy,
     load_mcp_config
 )
+from .mcp_client_wrapper import MCPClientWrapper
 
 
 class UnifiedMCPClient:
@@ -62,6 +64,9 @@ class UnifiedMCPClient:
 
         # HTTP client will be created per-request to avoid connection issues
         self._http_timeout = httpx.Timeout(60.0, connect=10.0)
+        
+        # MCP SDK client for real MCP protocol communication
+        self.mcp_client = MCPClientWrapper()
 
     # ==================== Public API ====================
 
@@ -264,8 +269,21 @@ class UnifiedMCPClient:
             return f"Error: Unexpected error in Ollama search: {str(e)}"
 
     async def _handle_web_search(self, query: str, config: ServerConfig) -> str:
-        """Handle web search using DuckDuckGo"""
+        """Handle web search using MCP web-search server"""
         try:
+            # Try to use the real MCP web-search server first
+            result = await self.mcp_client.call_tool(
+                server_name='mcp-web-search',
+                tool_name='search_web',
+                arguments={'query': query}
+            )
+            
+            if result:
+                logger.info(f"✅ MCP web-search returned {len(result)} chars")
+                return result
+            
+            # Fallback to DuckDuckGo instant answer API
+            logger.warning("MCP web-search failed, falling back to DDG instant answer")
             url = "https://api.duckduckgo.com/"
             params = {
                 "q": query,
@@ -304,6 +322,19 @@ class UnifiedMCPClient:
     async def _handle_wikipedia(self, query: str, config: ServerConfig) -> str:
         """Handle Wikipedia API requests"""
         try:
+            # Try to use the real MCP wikipedia server first
+            result = await self.mcp_client.call_tool(
+                server_name='mcp-wikipedia',
+                tool_name='search',
+                arguments={'query': query}
+            )
+            
+            if result:
+                logger.info(f"✅ MCP wikipedia returned {len(result)} chars")
+                return result
+            
+            # Fallback to direct Wikipedia API
+            logger.warning("MCP wikipedia failed, falling back to direct API")
             timeout = httpx.Timeout(config.timeout, connect=10.0)
 
             async with httpx.AsyncClient(timeout=timeout) as client:
@@ -646,6 +677,11 @@ class UnifiedMCPClient:
     def get_server_info(self, server_name: str) -> Optional[ServerConfig]:
         """Get configuration for a specific server"""
         return self.config.servers.get(server_name)
+    
+    async def close(self):
+        """Close all MCP connections and cleanup resources"""
+        await self.mcp_client.close_all_sessions()
+        self._executor.shutdown(wait=False)
 
     def get_servers_by_capability(self, capability: str) -> List[str]:
         """Get servers that have a specific capability"""

@@ -21,8 +21,10 @@
       "max_tokens": 1024,
       "temperature": 0.5,
       "enabled": true,
-      "capabilities": ["current_events", "web_search", "real_time_data"],
-      "description": "DuckDuckGo web search for current information"
+      "capabilities": ["current_events", "web_search", "real_time_data", "weather"],
+      "description": "DuckDuckGo web search for current information",
+      "mcp_server_name": "mcp-web-search",
+      "mcp_tool_name": "search_web"
     },
     "wikipedia": {
       "name": "wikipedia",
@@ -33,7 +35,31 @@
       "temperature": 0.3,
       "enabled": true,
       "capabilities": ["encyclopedic_knowledge", "factual_data", "historical_info"],
-      "description": "Wikipedia API for encyclopedic knowledge"
+      "description": "Wikipedia API for encyclopedic knowledge",
+      "mcp_server_name": "mcp-wikipedia",
+      "mcp_tool_name": "search"
+    },
+    "wikidata": {
+      "name": "wikidata",
+      "type": "wikidata",
+      "url": "https://query.wikidata.org/sparql",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["structured_data", "entities", "factual_data", "relationships"],
+      "description": "Wikidata SPARQL endpoint for structured knowledge graphs"
+    },
+    "dbpedia": {
+      "name": "dbpedia",
+      "type": "dbpedia",
+      "url": "https://dbpedia.org/sparql",
+      "timeout": 30,
+      "max_tokens": 2048,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["structured_data", "entities", "factual_data", "relationships"],
+      "description": "DBpedia SPARQL endpoint for structured knowledge extraction"
     },
     "arxiv": {
       "name": "arxiv",
@@ -44,7 +70,9 @@
       "temperature": 0.3,
       "enabled": true,
       "capabilities": ["scientific_research", "academic_papers", "latest_research"],
-      "description": "arXiv API for scientific papers and research"
+      "description": "arXiv API for scientific papers and research",
+      "mcp_server_name": "mcp-arxiv",
+      "mcp_tool_name": "search"
     },
     "finance": {
       "name": "finance",
