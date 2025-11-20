@@ -106,6 +106,18 @@
       "enabled": false,
       "capabilities": ["code_search", "repositories", "development_trends"],
       "description": "GitHub API for code search and repository information (requires token)"
+    },
+    "weather": {
+      "name": "weather",
+      "type": "weather",
+      "timeout": 30,
+      "max_tokens": 1024,
+      "temperature": 0.3,
+      "enabled": true,
+      "capabilities": ["weather", "forecasts", "air_quality", "weather_alerts"],
+      "description": "OpenWeatherMap API for weather data and forecasts",
+      "mcp_server_name": "openweathermap",
+      "mcp_tool_name": "get-current-weather"
     }
   },
   "server_selection_strategy": "auto",
@@ -122,7 +134,11 @@
     "structured": ["wikidata", "dbpedia"],
     "code_related": ["github", "web-search"],
     "financial": ["finance", "web-search"],
-    "weather": ["web-search"]
+    "weather": ["weather"],
+    "weather_forecast": ["weather"],
+    "temperature": ["weather"],
+    "precipitation": ["weather"],
+    "conditions": ["weather"]
   }
 }
 

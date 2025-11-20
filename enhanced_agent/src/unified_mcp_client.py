@@ -612,12 +612,26 @@ class UnifiedMCPClient:
             return f"Error: Could not get financial data. ({str(e)})"
 
     async def _handle_weather(self, query: str, config: ServerConfig) -> str:
-        """Handle weather API requests (OpenWeatherMap)"""
-        if not config.api_key or config.api_key.startswith("${"):
-            return "Error: Weather API key not configured. Set WEATHER_API_KEY environment variable."
-
+        """Handle weather API requests using OpenWeatherMap MCP server"""
         try:
-            url = f"{config.url}/weather"
+            # Try to use the MCP OpenWeatherMap server first
+            result = await self.mcp_client.call_tool(
+                server_name='openweathermap',
+                tool_name='get-current-weather',
+                arguments={'location': query}
+            )
+            
+            if result:
+                logger.info(f"✅ OpenWeatherMap MCP returned {len(result)} chars")
+                return result
+            
+            # Fallback to direct OpenWeatherMap API if MCP fails
+            logger.warning("OpenWeatherMap MCP failed, falling back to direct API")
+            
+            if not config.api_key or config.api_key.startswith("${"):
+                return "Error: Weather API key not configured. Set OPENWEATHER_API_KEY environment variable."
+
+            url = f"https://api.openweathermap.org/data/2.5/weather"
             params = {
                 "q": query,
                 "appid": config.api_key,
@@ -636,10 +650,16 @@ class UnifiedMCPClient:
                 country = data.get("sys", {}).get("country", "")
                 temp = data.get("main", {}).get("temp", "N/A")
                 description = data.get("weather", [{}])[0].get("description", "No description")
+                feels_like = data.get("main", {}).get("feels_like", "N/A")
+                humidity = data.get("main", {}).get("humidity", "N/A")
 
-                return f"🌤️ {city}, {country}: {temp}°C, {description.title()}"
+                return f"🌤️ Weather in {city}, {country}:\n" \
+                       f"Temperature: {temp}°C (feels like {feels_like}°C)\n" \
+                       f"Conditions: {description.title()}\n" \
+                       f"Humidity: {humidity}%"
 
         except Exception as e:
+            logger.error(f"Error getting weather data: {e}")
             return f"Error: Could not get weather data. ({str(e)})"
 
     async def _handle_playwright(self, query: str, config: ServerConfig) -> str:

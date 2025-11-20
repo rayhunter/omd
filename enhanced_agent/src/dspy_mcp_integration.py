@@ -246,7 +246,9 @@ class DSPyMCPIntegration:
                 for rec in recommended:
                     rec_lower = rec.lower().replace(' ', '-').replace('_', '-')
                     # Map common variations to actual server names
-                    if 'wikidata' in rec_lower:
+                    if 'weather' in rec_lower or 'forecast' in rec_lower or 'temperature' in rec_lower or 'openweather' in rec_lower:
+                        normalized_recommended.append('weather')
+                    elif 'wikidata' in rec_lower:
                         normalized_recommended.append('wikidata')
                     elif 'dbpedia' in rec_lower:
                         normalized_recommended.append('dbpedia')
