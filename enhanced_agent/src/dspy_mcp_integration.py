@@ -240,11 +240,39 @@ class DSPyMCPIntegration:
                 
                 # Filter valid servers from recommendations
                 recommended = analysis['recommended_sources']
-                valid_servers = [s for s in recommended if s in available_servers]
+                
+                # Normalize server names (handle common variations)
+                normalized_recommended = []
+                for rec in recommended:
+                    rec_lower = rec.lower().replace(' ', '-').replace('_', '-')
+                    # Map common variations to actual server names
+                    if 'finance' in rec_lower or 'yahoo' in rec_lower or 'stock' in rec_lower:
+                        normalized_recommended.append('finance')
+                    elif 'news' in rec_lower:
+                        normalized_recommended.append('web-search')  # Prefer web-search over news-api (no key needed)
+                    elif 'web' in rec_lower or 'search' in rec_lower or 'google' in rec_lower:
+                        normalized_recommended.append('web-search')
+                    elif 'wiki' in rec_lower:
+                        normalized_recommended.append('wikipedia')
+                    elif 'arxiv' in rec_lower or 'paper' in rec_lower or 'research' in rec_lower:
+                        normalized_recommended.append('arxiv')
+                    elif 'github' in rec_lower or 'code' in rec_lower:
+                        normalized_recommended.append('github')
+                    else:
+                        # Try direct match
+                        normalized_recommended.append(rec)
+                
+                # Remove duplicates while preserving order
+                normalized_recommended = list(dict.fromkeys(normalized_recommended))
+                
+                # Filter to only valid/enabled servers
+                valid_servers = [s for s in normalized_recommended if s in available_servers]
                 
                 if valid_servers:
                     selected_servers = valid_servers
-                    print(f"🤖 DSPy selected servers: {', '.join(selected_servers)}")
+                    print(f"🤖 DSPy recommended: {', '.join(recommended)} → Using: {', '.join(selected_servers)}")
+                else:
+                    print(f"⚠️  DSPy recommended: {', '.join(recommended)} but none are available. Using default routing.")
             except Exception as e:
                 print(f"⚠️ Error processing recommended sources: {e}")
 
