@@ -20,7 +20,7 @@ from .mcp_client import MCPClient
 # Import OpenManus components
 from openmanus.agent import ReActAgent
 from openmanus.config import Config
-from openmanus.schema import Message
+from openmanus.schema import Message, AgentState
 
 # Import privacy features
 try:
@@ -116,6 +116,13 @@ class EnhancedResearchAgent(ReActAgent):
                             if msg.role == "user"), None)
         
         if not last_user_msg:
+            return False
+            
+        # Check if we've already answered this query
+        # If the last message is from the assistant, we're done
+        if self.memory.messages and self.memory.messages[-1].role == "assistant":
+            # Ensure we don't loop forever
+            self.state = AgentState.FINISHED
             return False
             
         # New query to process

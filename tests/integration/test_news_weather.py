@@ -8,7 +8,9 @@ import sys
 from pathlib import Path
 import os
 
-sys.path.insert(0, str(Path(__file__).parent))
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root))
 
 from enhanced_agent.src.unified_mcp_client import UnifiedMCPClient
 
@@ -19,15 +21,15 @@ async def test_news_weather():
     print("Testing News API & Weather API Integration")
     print("=" * 80)
 
-    config_path = Path(__file__).parent / "enhanced_agent" / "config" / "mcp.json"
+    config_path = project_root / "enhanced_agent" / "config" / "mcp.json"
     print(f"\n📁 Loading config from: {config_path}")
 
     # Check API keys
     print("\n🔑 Checking API Keys:")
     news_key = os.getenv("NEWS_API_KEY")
-    weather_key = os.getenv("WEATHER_API_KEY")
+    weather_key = os.getenv("OPENWEATHER_API_KEY")
     print(f"  NEWS_API_KEY: {'✅ Set' if news_key else '❌ Not set'}")
-    print(f"  WEATHER_API_KEY: {'✅ Set' if weather_key else '❌ Not set'}")
+    print(f"  OPENWEATHER_API_KEY: {'✅ Set' if weather_key else '❌ Not set'}")
 
     try:
         client = UnifiedMCPClient(config=str(config_path))

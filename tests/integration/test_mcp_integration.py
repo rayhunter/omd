@@ -7,8 +7,9 @@ import asyncio
 import sys
 from pathlib import Path
 
-# Add enhanced_agent to path
-sys.path.insert(0, str(Path(__file__).parent / "enhanced_agent" / "src"))
+# Add enhanced_agent to path (go up to project root first)
+project_root = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(project_root / "enhanced_agent" / "src"))
 
 from mcp_client_wrapper import MCPClientWrapper
 from loguru import logger

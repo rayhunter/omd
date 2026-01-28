@@ -1,6 +1,6 @@
 {
   "default_mcp_server": "web-search",
-  "server_selection_strategy": "auto",
+  "server_selection_strategy": "multi",
   "fallback_servers": ["web-search", "llama-mcp"],
   "servers": {
     "web-search": {
@@ -98,11 +98,12 @@
     }
   },
   "routing_rules": {
+    "weather": ["weather"],
+    "forecast": ["weather"],
+    "temperature": ["weather"],
     "current_events": ["news-api", "web-search"],
     "breaking_news": ["news-api", "web-search"],
     "news": ["news-api", "web-search"],
-    "weather": ["weather"],
-    "forecast": ["weather"],
     "scientific_research": ["arxiv", "wikidata", "web-search"],
     "general_knowledge": ["wikidata", "dbpedia", "web-search"],
     "factual": ["wikidata", "dbpedia", "web-search"],

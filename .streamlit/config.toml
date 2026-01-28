@@ -19,11 +19,13 @@ textColor = "#292524"  # Warm stone
 font = "Manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
 
 [server]
-# Server configuration
+# Server configuration for Railway
 headless = true
-# port = 8503  # Commented out for Streamlit Cloud (Cloud manages port automatically)
+port = 8501
+address = "0.0.0.0"
 enableCORS = true
 enableXsrfProtection = true
+baseUrlPath = ""
 
 [browser]
 # Disable usage stats collection

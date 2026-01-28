@@ -63,6 +63,9 @@ class MCPClientWrapper:
         
         server_config = self.config[server_name]
         
+        stdio_transport = None
+        session = None
+        
         try:
             # Handle URL-based servers (SSE)
             if 'url' in server_config:
@@ -100,7 +103,38 @@ class MCPClientWrapper:
             return None
             
         except Exception as e:
-            logger.error(f"Failed to create session for {server_name}: {e}")
+            error_msg = str(e)
+            
+            # Check for the specific completion error
+            # The error may appear as "Connection closed" when the server fails to start
+            # due to completion handler issues (common with mcp-openweathermap)
+            is_completion_error = (
+                "does not support completions" in error_msg or 
+                "completion/complete" in error_msg or
+                (server_name == "openweathermap" and "Connection closed" in error_msg)
+            )
+            
+            if is_completion_error:
+                logger.warning(
+                    f"⚠️  MCP server '{server_name}' has compatibility issue (completions not supported). "
+                    f"This is a known issue with some MCP servers. The system will fall back to alternative methods."
+                )
+            else:
+                logger.error(f"Failed to create session for {server_name}: {e}")
+            
+            # Clean up any partially created resources
+            if session is not None:
+                try:
+                    await session.__aexit__(None, None, None)
+                except Exception:
+                    pass  # Ignore cleanup errors
+            
+            if stdio_transport is not None:
+                try:
+                    await stdio_transport.__aexit__(None, None, None)
+                except Exception:
+                    pass  # Ignore cleanup errors
+            
             return None
     
     async def call_tool(self, server_name: str, tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:

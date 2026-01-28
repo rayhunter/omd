@@ -1,5 +1,6 @@
 import streamlit as st
 import asyncio
+import os
 import sys
 import uuid
 from pathlib import Path
@@ -58,6 +59,15 @@ except ImportError:
     session_manager = None
     logger = None
     print("⚠️  Privacy features not available")
+
+# Optional: enable debug console logging in the browser (disabled by default)
+DEBUG_CONSOLE = os.getenv("STREAMLIT_DEBUG_CONSOLE", "").strip().lower() in {"1", "true", "yes", "on"}
+
+def _debug_browser_console(script_html: str) -> None:
+    """Inject browser console logs (for debugging only). No-op unless DEBUG_CONSOLE is enabled."""
+    if not DEBUG_CONSOLE:
+        return
+    st.markdown(script_html, unsafe_allow_html=True)
 
 # Configure Streamlit page
 st.set_page_config(
@@ -489,16 +499,6 @@ def main():
         st.session_state.session_created_at = time.time()
         if logger:
             logger.info(f"Created new session: {st.session_state.session_id}")
-
-        # Browser console log: Step 1 - Session initialization
-        st.html(f"""
-        <script>
-            console.log("🔐 STEP 1: Session Initialized");
-            console.log("  ├─ Session ID: {st.session_state.session_id}");
-            console.log("  ├─ User ID: {st.session_state.user_id}");
-            console.log("  └─ Timestamp: {time.time()}");
-        </script>
-        """)
     
     # Initialize SessionManager
     if PRIVACY_AVAILABLE and session_manager:
@@ -510,16 +510,6 @@ def main():
             st.session_state.privacy_session_initialized = True
             if logger:
                 logger.info("SessionManager initialized for session")
-
-            # Browser console log: Step 2 - SessionManager initialization
-            st.html(f"""
-            <script>
-                console.log("🛡️ STEP 2: SessionManager Initialized");
-                console.log("  ├─ Session ID: {st.session_state.session_id}");
-                console.log("  ├─ Privacy features: ENABLED");
-                console.log("  └─ Isolation mode: ACTIVE");
-            </script>
-            """)
     
     # Initialize session-scoped agent instance
     if "agent" not in st.session_state and agent_available and create_agent:
@@ -527,16 +517,6 @@ def main():
         st.session_state.agent = create_agent(session_id=st.session_state.session_id)
         if logger:
             logger.info(f"Created session-aware agent instance: {st.session_state.session_id}")
-
-        # Browser console log: Step 3 - Agent initialization
-        st.html(f"""
-        <script>
-            console.log("🤖 STEP 3: Agent Created");
-            console.log("  ├─ Session ID: {st.session_state.session_id}");
-            console.log("  ├─ Agent type: EnhancedResearchAgent");
-            console.log("  └─ Session-aware: TRUE");
-        </script>
-        """)
 
     # Initialize Langfuse session tracking
     if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
@@ -550,17 +530,6 @@ def main():
                 user_id=st.session_state.langfuse_user_id
             )
 
-            # Browser console log: Step 4 - Langfuse registration
-            st.html(f"""
-            <script>
-                console.log("📊 STEP 4: Langfuse Session Registered");
-                console.log("  ├─ Langfuse Session ID: {st.session_state.langfuse_session_id}");
-                console.log("  ├─ Langfuse User ID: {st.session_state.langfuse_user_id}");
-                console.log("  ├─ Observability: ENABLED");
-                console.log("  └─ Auto-tagging: ALL TRACES");
-            </script>
-            """)
-    
     # Header
     st.title("🧠 Enhanced Research Agent")
     st.markdown("*Powered by OpenManus + MCP Integration + DSPy*")
@@ -584,17 +553,6 @@ def main():
         # Logout button
         if st.button("🚪 Logout & Clear Session", use_container_width=True):
             old_session_id = st.session_state.session_id
-
-            # Browser console log: Session cleanup
-            st.html(f"""
-            <script>
-                console.log("🚪 STEP 8: Session Cleanup");
-                console.log("  ├─ Ending session: {old_session_id}");
-                console.log("  ├─ Clearing SessionManager data");
-                console.log("  ├─ Clearing Langfuse session context");
-                console.log("  └─ Clearing Streamlit session state");
-            </script>
-            """)
 
             if PRIVACY_AVAILABLE and session_manager:
                 session_manager.end_session(st.session_state.session_id)
@@ -684,7 +642,6 @@ def main():
                     else:
                         st.warning("Please select servers in the sidebar")
     
-
     # Alternative form-based input with progress indicators
     st.markdown("---")
 
@@ -803,17 +760,6 @@ def main():
         # Increment message count
         st.session_state.message_count = st.session_state.get('message_count', 0) + 1
 
-        # Browser console log: Step 5 - Query received
-        st.html(f"""
-        <script>
-            console.log("💬 STEP 5: Query Received");
-            console.log("  ├─ Session ID: {st.session_state.session_id}");
-            console.log("  ├─ Message #: {st.session_state.message_count}");
-            console.log("  ├─ Query length: {len(prompt)} chars");
-            console.log("  └─ Will be auto-tagged with session_id in Langfuse");
-        </script>
-        """)
-
         # Add to session manager
         if PRIVACY_AVAILABLE and session_manager:
             session_manager.add_message(st.session_state.session_id, "user", prompt)
@@ -832,18 +778,6 @@ def main():
             with st.spinner("🧠 Processing your request..."):
                 # Wrap processing in Langfuse trace if available
                 if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
-                    # Browser console log: Step 6 - Trace span creation
-                    st.html(f"""
-                    <script>
-                        console.log("🔍 STEP 6: Creating Langfuse Trace Span");
-                        console.log("  ├─ Span name: streamlit_chat_query");
-                        console.log("  ├─ Session ID (auto-injected): {st.session_state.session_id}");
-                        console.log("  ├─ User ID (auto-injected): {st.session_state.user_id}");
-                        console.log("  ├─ Message #: {st.session_state.message_count}");
-                        console.log("  └─ Tags: streamlit, chat, user_query");
-                    </script>
-                    """)
-
                     with langfuse_manager.trace_span(
                         "streamlit_chat_query",
                         metadata={
@@ -875,14 +809,6 @@ def main():
                     if PRIVACY_AVAILABLE and session_manager:
                         session_manager.add_message(st.session_state.session_id, "assistant", error_msg)
 
-                    # Browser console log: Error response
-                    st.html(f"""
-                    <script>
-                        console.error("❌ STEP 7: Query Processing Error");
-                        console.log("  ├─ Session ID: {st.session_state.session_id}");
-                        console.log("  └─ Error logged to Langfuse with session_id");
-                    </script>
-                    """)
                 else:
                     st.markdown(result)
                     st.session_state.messages.append({"role": "assistant", "content": result})
@@ -895,20 +821,6 @@ def main():
                     if logger:
                         logger.info_agent_output("Chat query completed", result)
 
-                    # Browser console log: Step 7 - Response completed
-                    st.html(f"""
-                    <script>
-                        console.log("✅ STEP 7: Query Processing Complete");
-                        console.log("  ├─ Session ID: {st.session_state.session_id}");
-                        console.log("  ├─ Response length: {len(result)} chars");
-                        console.log("  ├─ Trace completed in Langfuse");
-                        console.log("  └─ All traces tagged with session_id: {st.session_state.session_id}");
-                        console.log("");
-                        console.log("🎯 Session ID Flow Summary:");
-                        console.log("  Streamlit → SessionManager → Agent → Langfuse");
-                        console.log("  All components use same session_id: {st.session_state.session_id}");
-                    </script>
-                    """)
     
    
     
@@ -917,7 +829,7 @@ def main():
     st.markdown("""
     <div style='text-align: center; color: #666;'>
     <span>&copy;2025 Conceived by LikeSugarAI, powered by OpenManus<br /></span>
-    <small>Enhanced Research Agent | OMD: OpenManus + MCP Integration + DSPy</small>
+    <small>Enhanced Research Agent | <a href="https://www.youtube.com/watch?v=-vMBp6iUJzk" target="_blank" rel="noopener noreferrer" style="color: #d97706; text-decoration: none; font-weight: 600;">🎧</a> OMD : OpenManus + MCP Integration + DSPy</small><br />
     <hr />
     </div>
     """, unsafe_allow_html=True)

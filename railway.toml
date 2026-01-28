@@ -1,0 +1,8 @@
+[build]
+builder = "dockerfile"
+dockerfile = "./Dockerfile"
+
+[deploy]
+startCommand = "streamlit run enhanced_agent_streamlit.py --server.port=8501 --server.address=0.0.0.0"
+restartPolicyMaxRetries = 5
+restartPolicyWindowSeconds = 600

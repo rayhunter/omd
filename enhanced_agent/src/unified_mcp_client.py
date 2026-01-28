@@ -13,6 +13,7 @@ from both the basic and enhanced clients:
 import asyncio
 import httpx
 import json
+import os
 import re
 from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
@@ -615,48 +616,179 @@ class UnifiedMCPClient:
         """Handle weather API requests using OpenWeatherMap MCP server"""
         try:
             # Try to use the MCP OpenWeatherMap server first
-            result = await self.mcp_client.call_tool(
-                server_name='openweathermap',
-                tool_name='get-current-weather',
-                arguments={'location': query}
-            )
-            
-            if result:
-                logger.info(f"✅ OpenWeatherMap MCP returned {len(result)} chars")
-                return result
-            
+            # Wrap in try-except to handle connection errors gracefully
+            try:
+                result = await self.mcp_client.call_tool(
+                    server_name='openweathermap',
+                    tool_name='get-current-weather',
+                    arguments={'location': query}
+                )
+
+                if result:
+                    logger.info(f"✅ OpenWeatherMap MCP returned {len(result)} chars")
+                    return result
+            except Exception as mcp_error:
+                # Log but don't fail - we'll fall back to direct API
+                error_msg = str(mcp_error)
+                if "does not support completions" in error_msg or "completion/complete" in error_msg:
+                    logger.debug(f"MCP server compatibility issue (expected): {error_msg[:100]}")
+                else:
+                    logger.debug(f"MCP call failed (will use fallback): {mcp_error}")
+
             # Fallback to direct OpenWeatherMap API if MCP fails
-            logger.warning("OpenWeatherMap MCP failed, falling back to direct API")
+            logger.info("Using direct OpenWeatherMap API (MCP unavailable or incompatible)")
+
+            # Get API key from environment if config has placeholder
+            api_key = config.api_key
+            if not api_key or api_key.startswith("${"):
+                # Try to get from environment
+                api_key = os.getenv("OPENWEATHER_API_KEY") or os.getenv("WEATHER_API_KEY")
+                if not api_key:
+                    return "Error: Weather API key not configured. Set OPENWEATHER_API_KEY environment variable."
+
+            # Detect if query is asking for forecast (tomorrow, next week, etc.)
+            query_lower = query.lower()
+            is_forecast = any(word in query_lower for word in ['tomorrow', 'forecast', 'next', 'future', 'will be', 'coming'])
+
+            # Extract location from query using pattern matching
+            import re
+            location = None
             
-            if not config.api_key or config.api_key.startswith("${"):
-                return "Error: Weather API key not configured. Set OPENWEATHER_API_KEY environment variable."
+            # Pattern 1: "weather in [location]" or "weather for [location]" or "weather at [location]"
+            # Include country codes and preserve commas
+            patterns = [
+                r'(?:weather|forecast|temperature|conditions?)\s+(?:in|for|at)\s+([^?]+?)(?:\?|$)',  # Capture until ? or end
+                r'(?:what\'?s|what\s+is)\s+(?:the\s+)?(?:weather|forecast)\s+(?:in|for|at|of)\s+([^?]+?)(?:\?|$)',  # Capture until ? or end
+                r'(?:weather|forecast)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*(?:\s*,\s*[A-Z]{2})?)',  # Capitalized location with country code
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, query, re.IGNORECASE)
+                if match:
+                    location = match.group(1).strip()
+                    break
+            
+            # Pattern 2: If no pattern match, try to extract location by removing weather keywords
+            if not location:
+                # Remove all weather-related keywords
+                weather_keywords = [
+                    r'\b(?:weather|forecast|temperature|conditions?|current|today|tomorrow|next|future|will\s+be|coming)\b',
+                    r'\b(?:what\'?s|what\s+is|the|in|for|at|of)\b',
+                    r'\?+',  # Remove question marks
+                ]
+                cleaned = query
+                for keyword_pattern in weather_keywords:
+                    cleaned = re.sub(keyword_pattern, ' ', cleaned, flags=re.IGNORECASE)
+                
+                # Clean up and extract potential location (words that look like place names)
+                words = cleaned.split()
+                # Filter out common stop words and keep capitalized words or common city patterns
+                location_words = []
+                for word in words:
+                    word_clean = word.strip('.,!?;:')
+                    if word_clean and len(word_clean) > 1:
+                        # Keep if capitalized (likely a place name) or if it's a common location indicator
+                        if word_clean[0].isupper() or word_clean.lower() in ['london', 'paris', 'tokyo', 'new', 'york', 'san', 'francisco']:
+                            location_words.append(word_clean)
+                
+                if location_words:
+                    location = ' '.join(location_words)
+            
+            # Validate location - if it's still empty or contains only weather keywords, return error
+            if not location or location.lower().strip() in ['weather', 'forecast', 'current', 'today', 'tomorrow']:
+                return "Error: Please specify a location. Example: 'weather in London' or 'weather for Paris, France'"
+            
+            # Clean up location (remove trailing punctuation, normalize spaces)
+            location = re.sub(r'[.,!?;:]+$', '', location).strip()
 
-            url = f"https://api.openweathermap.org/data/2.5/weather"
-            params = {
-                "q": query,
-                "appid": config.api_key,
-                "units": "metric"
-            }
+            if is_forecast:
+                # Use forecast endpoint for future weather
+                url = f"https://api.openweathermap.org/data/2.5/forecast"
+                params = {
+                    "q": location,
+                    "appid": api_key,
+                    "units": "metric",
+                    "cnt": 8  # Get 8 forecast periods (24 hours ahead, 3-hour intervals)
+                }
 
-            timeout = httpx.Timeout(config.timeout, connect=10.0)
+                timeout = httpx.Timeout(config.timeout, connect=10.0)
 
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                response = await client.get(url, params=params)
-                response.raise_for_status()
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
 
-                data = response.json()
+                    data = response.json()
+                    city = data.get("city", {}).get("name", "Unknown")
+                    country = data.get("city", {}).get("country", "")
 
-                city = data.get("name", "Unknown")
-                country = data.get("sys", {}).get("country", "")
-                temp = data.get("main", {}).get("temp", "N/A")
-                description = data.get("weather", [{}])[0].get("description", "No description")
-                feels_like = data.get("main", {}).get("feels_like", "N/A")
-                humidity = data.get("main", {}).get("humidity", "N/A")
+                    result = f"🌤️ Weather Forecast for {city}, {country}:\n\n"
 
-                return f"🌤️ Weather in {city}, {country}:\n" \
-                       f"Temperature: {temp}°C (feels like {feels_like}°C)\n" \
-                       f"Conditions: {description.title()}\n" \
-                       f"Humidity: {humidity}%"
+                    # Group forecasts by day
+                    from datetime import datetime
+                    forecasts_by_day = {}
+                    for forecast in data.get("list", []):
+                        dt = datetime.fromtimestamp(forecast["dt"])
+                        day_key = dt.strftime("%Y-%m-%d")
+                        if day_key not in forecasts_by_day:
+                            forecasts_by_day[day_key] = []
+                        forecasts_by_day[day_key].append(forecast)
+
+                    # Show forecast for tomorrow (skip today's remaining hours)
+                    today = datetime.now().strftime("%Y-%m-%d")
+                    for day_key, forecasts in list(forecasts_by_day.items())[1:2]:  # Get tomorrow
+                        dt = datetime.strptime(day_key, "%Y-%m-%d")
+                        result += f"📅 {dt.strftime('%A, %B %d')}:\n"
+
+                        # Calculate average temp and most common condition
+                        temps = [f["main"]["temp"] for f in forecasts]
+                        avg_temp = sum(temps) / len(temps)
+                        max_temp = max(temps)
+                        min_temp = min(temps)
+
+                        conditions = [f["weather"][0]["description"] for f in forecasts]
+                        most_common = max(set(conditions), key=conditions.count)
+
+                        result += f"   Temperature: {avg_temp:.1f}°C (High: {max_temp:.1f}°C, Low: {min_temp:.1f}°C)\n"
+                        result += f"   Conditions: {most_common.title()}\n"
+
+                        # Show hourly breakdown
+                        result += "   Hourly:\n"
+                        for forecast in forecasts[:4]:  # Show first 4 periods
+                            time = datetime.fromtimestamp(forecast["dt"]).strftime("%I:%M %p")
+                            temp = forecast["main"]["temp"]
+                            desc = forecast["weather"][0]["description"]
+                            result += f"     {time}: {temp:.1f}°C - {desc.title()}\n"
+
+                    return result
+
+            else:
+                # Use current weather endpoint
+                url = f"https://api.openweathermap.org/data/2.5/weather"
+                params = {
+                    "q": location,
+                    "appid": api_key,
+                    "units": "metric"
+                }
+
+                timeout = httpx.Timeout(config.timeout, connect=10.0)
+
+                async with httpx.AsyncClient(timeout=timeout) as client:
+                    response = await client.get(url, params=params)
+                    response.raise_for_status()
+
+                    data = response.json()
+
+                    city = data.get("name", "Unknown")
+                    country = data.get("sys", {}).get("country", "")
+                    temp = data.get("main", {}).get("temp", "N/A")
+                    description = data.get("weather", [{}])[0].get("description", "No description")
+                    feels_like = data.get("main", {}).get("feels_like", "N/A")
+                    humidity = data.get("main", {}).get("humidity", "N/A")
+
+                    return f"🌤️ Current Weather in {city}, {country}:\n" \
+                           f"Temperature: {temp}°C (feels like {feels_like}°C)\n" \
+                           f"Conditions: {description.title()}\n" \
+                           f"Humidity: {humidity}%"
 
         except Exception as e:
             logger.error(f"Error getting weather data: {e}")

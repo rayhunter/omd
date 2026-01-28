@@ -266,7 +266,7 @@ class AppConfig(BaseSettings):
     workers: int = Field(1, description="Number of worker processes")
     
     # Application settings
-    max_steps: int = Field(10, description="Maximum agent steps")
+    max_steps: int = Field(8, description="Maximum agent steps")
     request_timeout: int = Field(300, description="Request timeout in seconds")
     enable_sandbox: bool = Field(True, description="Enable sandbox environment")
     

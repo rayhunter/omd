@@ -47,6 +47,20 @@ Complete guide to OMD (OpenManus + DSPy + MCP) Enhanced Research Agent documenta
   - Dashboard usage and analytics
   - Best practices for monitoring
 
+### Status & Integration Reports
+
+Status files and integration summaries are located in [`docs/status/`](status/):
+- Test migration reports
+- Integration completion summaries
+- Feature status updates
+- Upgrade documentation
+
+### Technical Guides
+
+Detailed technical guides are in [`docs/guides/`](guides/):
+- Model configuration
+- Advanced setup and configuration
+
 ### Component Documentation
 
 - **[Enhanced Agent](../enhanced_agent/README.md)**
@@ -61,7 +75,7 @@ Complete guide to OMD (OpenManus + DSPy + MCP) Enhanced Research Agent documenta
   - Writing new tests
   - Test fixtures and utilities
 
-- **[CLAUDE.md](../CLAUDE.md)**
+- **[CLAUDE.md](archive/CLAUDE.md)** (Archived)
   - AI assistant guidance
   - Repository structure for LLM agents
   - Development commands and patterns
