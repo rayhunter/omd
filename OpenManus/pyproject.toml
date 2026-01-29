@@ -69,9 +69,6 @@ openmanus = "openmanus.main:main"
 [tool.setuptools]
 packages = ["openmanus"]
 
-[tool.setuptools.package-dir]
-openmanus = "app"
-
 [tool.black]
 line-length = 100
 target-version = ['py310', 'py311', 'py312']
