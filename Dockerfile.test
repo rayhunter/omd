@@ -1,0 +1,24 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install git (needed for some dependencies)
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements and OpenManus
+COPY requirements.txt .
+COPY OpenManus OpenManus/
+
+# Test: Install requirements
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Test: Install OpenManus
+RUN pip install --no-cache-dir OpenManus/
+
+# Test: Verify imports work
+RUN python -c "from openmanus.agent import ReActAgent; from openmanus.config import Config; from openmanus.schema import Message; print('✓ OpenManus imports successful')"
+
+# Test: Check package is installed
+RUN pip show openmanus
+
+CMD ["echo", "Build test successful"]
