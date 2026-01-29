@@ -37,9 +37,14 @@ RUN mkdir -p .streamlit && \
     echo 'showErrorDetails = false' >> .streamlit/config.toml && \
     echo 'toolbarMode = "minimal"' >> .streamlit/config.toml
 
-RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir git+https://github.com/mannaandpoem/OpenManus.git && \
-    pip install --no-cache-dir -e enhanced_agent/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Clone and install OpenManus from GitHub
+RUN git clone https://github.com/mannaandpoem/OpenManus.git /tmp/OpenManus && \
+    pip install --no-cache-dir /tmp/OpenManus && \
+    rm -rf /tmp/OpenManus
+
+RUN pip install --no-cache-dir -e enhanced_agent/
 
 EXPOSE 8501
 

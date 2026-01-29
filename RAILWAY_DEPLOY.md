@@ -96,7 +96,7 @@ The error occurred because:
 - The empty submodule directory caused `pip install -e OpenManus/` to fail
 
 The fix:
-- ✅ Changed to install OpenManus directly from GitHub repository
-- ✅ Used `pip install git+https://github.com/mannaandpoem/OpenManus.git`
+- ✅ Changed to clone and install OpenManus from GitHub repository
+- ✅ Clones repo to `/tmp/OpenManus` and installs with pip
 - ✅ Removed dependency on local submodule for Railway builds
 - ✅ Proper dependency installation order (requirements → OpenManus → enhanced_agent)
