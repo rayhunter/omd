@@ -67,7 +67,7 @@ dspy = [
 openmanus = "openmanus.main:main"
 
 [tool.setuptools]
-packages = ["openmanus"]
+packages = {find = {}}  # Automatically find all packages and subpackages
 
 [tool.black]
 line-length = 100

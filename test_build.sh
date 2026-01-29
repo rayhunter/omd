@@ -73,6 +73,26 @@ if [ -f "setup.py" ]; then
     fi
 fi
 
+# Test 5: Verify subpackages exist
+echo ""
+echo "Test 5: Checking for subpackages..."
+SUBPACKAGES=(
+    "openmanus/agent"
+    "openmanus/tool"
+    "openmanus/prompt"
+    "openmanus/sandbox"
+    "openmanus/flow"
+)
+
+for pkg in "${SUBPACKAGES[@]}"; do
+    if [ -d "$pkg" ] && [ -f "$pkg/__init__.py" ]; then
+        echo "✓ $pkg/ subpackage exists"
+    else
+        echo "✗ $pkg/ subpackage NOT found"
+        exit 1
+    fi
+done
+
 echo ""
 echo "========================================="
 echo "All tests passed! ✓"
