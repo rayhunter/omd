@@ -8,23 +8,22 @@ The JavaScript error was caused by Streamlit's theme system trying to access bro
 ### Issue 2: "No module named 'openmanus'" Error
 The startup error occurred because:
 - OpenManus is a git submodule required by enhanced_agent
-- `.railwayignore` was excluding the `OpenManus/` directory
-- Dockerfile wasn't installing the OpenManus package
+- Git submodules aren't automatically included in Railway deployments
+- The submodule directory was empty on Railway, causing installation to fail
 
 ### Changes Made
 
 1. **Updated Dockerfile** - Now creates a production-ready `.streamlit/config.toml` during build
-2. **Updated Dockerfile** - Added OpenManus installation before enhanced_agent
+2. **Updated Dockerfile** - Installs OpenManus directly from GitHub instead of local submodule
 3. **Updated railway.toml** - Added environment variables for headless mode
-4. **Updated .railwayignore** - Removed `OpenManus/` exclusion so it deploys to Railway
-5. **Created config template** - `.streamlit/config.toml.example` for reference
+4. **Created config template** - `.streamlit/config.toml.example` for reference
 
 ### Deploy to Railway
 
 1. **Commit the changes:**
    ```bash
-   git add Dockerfile railway.toml .railwayignore .streamlit/config.toml.example RAILWAY_DEPLOY.md
-   git commit -m "Fix: Add Streamlit config and OpenManus installation for Railway"
+   git add Dockerfile railway.toml .streamlit/config.toml.example RAILWAY_DEPLOY.md
+   git commit -m "Fix: Install OpenManus from GitHub for Railway deployment"
    git push
    ```
 
@@ -93,11 +92,11 @@ The fix:
 ### OpenManus Module Error
 The error occurred because:
 - OpenManus is a git submodule dependency of enhanced_agent
-- `.railwayignore` was excluding `OpenManus/` directory from deployment
-- Dockerfile wasn't copying or installing the OpenManus package
+- Git submodules aren't automatically pushed/cloned in Railway deployments
+- The empty submodule directory caused `pip install -e OpenManus/` to fail
 
 The fix:
-- ✅ Removed `OpenManus/` from `.railwayignore`
-- ✅ Added `COPY OpenManus OpenManus/` to Dockerfile
-- ✅ Added `pip install -e OpenManus/` before enhanced_agent installation
-- ✅ Proper dependency installation order (OpenManus → enhanced_agent)
+- ✅ Changed to install OpenManus directly from GitHub repository
+- ✅ Used `pip install git+https://github.com/mannaandpoem/OpenManus.git`
+- ✅ Removed dependency on local submodule for Railway builds
+- ✅ Proper dependency installation order (requirements → OpenManus → enhanced_agent)
