@@ -1,21 +1,30 @@
 # Railway Deployment Guide
 
-## Fixed: Streamlit Theme Error
+## Fixed: Streamlit Theme Error & OpenManus Module Error
 
-The JavaScript error you encountered was caused by Streamlit's theme system trying to access browser APIs (`window.matchMedia`) without proper server-side configuration.
+### Issue 1: Streamlit Theme Error
+The JavaScript error was caused by Streamlit's theme system trying to access browser APIs (`window.matchMedia`) without proper server-side configuration.
+
+### Issue 2: "No module named 'openmanus'" Error
+The startup error occurred because:
+- OpenManus is a git submodule required by enhanced_agent
+- `.railwayignore` was excluding the `OpenManus/` directory
+- Dockerfile wasn't installing the OpenManus package
 
 ### Changes Made
 
 1. **Updated Dockerfile** - Now creates a production-ready `.streamlit/config.toml` during build
-2. **Updated railway.toml** - Added environment variables for headless mode
-3. **Created config template** - `.streamlit/config.toml.example` for reference
+2. **Updated Dockerfile** - Added OpenManus installation before enhanced_agent
+3. **Updated railway.toml** - Added environment variables for headless mode
+4. **Updated .railwayignore** - Removed `OpenManus/` exclusion so it deploys to Railway
+5. **Created config template** - `.streamlit/config.toml.example` for reference
 
 ### Deploy to Railway
 
 1. **Commit the changes:**
    ```bash
-   git add Dockerfile railway.toml .streamlit/config.toml.example RAILWAY_DEPLOY.md
-   git commit -m "Fix: Add Streamlit production config for Railway deployment"
+   git add Dockerfile railway.toml .railwayignore .streamlit/config.toml.example RAILWAY_DEPLOY.md
+   git commit -m "Fix: Add Streamlit config and OpenManus installation for Railway"
    git push
    ```
 
@@ -69,6 +78,7 @@ streamlit run enhanced_agent_streamlit.py --server.port=8501 --server.address=0.
 
 ## What Was Fixed
 
+### Theme Error
 The error occurred because:
 - Streamlit's frontend theme code tried to detect system color scheme preference
 - `window.matchMedia` is a browser API not available during SSR
@@ -79,3 +89,15 @@ The fix:
 - ✅ Headless mode enabled for server deployment
 - ✅ CORS and browser stats disabled for production
 - ✅ Proper server address and port binding
+
+### OpenManus Module Error
+The error occurred because:
+- OpenManus is a git submodule dependency of enhanced_agent
+- `.railwayignore` was excluding `OpenManus/` directory from deployment
+- Dockerfile wasn't copying or installing the OpenManus package
+
+The fix:
+- ✅ Removed `OpenManus/` from `.railwayignore`
+- ✅ Added `COPY OpenManus OpenManus/` to Dockerfile
+- ✅ Added `pip install -e OpenManus/` before enhanced_agent installation
+- ✅ Proper dependency installation order (OpenManus → enhanced_agent)
