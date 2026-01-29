@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
+COPY OpenManus OpenManus/
 COPY enhanced_agent enhanced_agent/
 COPY enhanced_agent_streamlit.py .
 COPY config config/
@@ -37,14 +38,9 @@ RUN mkdir -p .streamlit && \
     echo 'showErrorDetails = false' >> .streamlit/config.toml && \
     echo 'toolbarMode = "minimal"' >> .streamlit/config.toml
 
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Clone and install OpenManus from GitHub
-RUN git clone https://github.com/mannaandpoem/OpenManus.git /tmp/OpenManus && \
-    pip install --no-cache-dir /tmp/OpenManus && \
-    rm -rf /tmp/OpenManus
-
-RUN pip install --no-cache-dir -e enhanced_agent/
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir OpenManus/ && \
+    pip install --no-cache-dir -e enhanced_agent/
 
 EXPOSE 8501
 

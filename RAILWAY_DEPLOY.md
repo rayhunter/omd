@@ -8,22 +8,28 @@ The JavaScript error was caused by Streamlit's theme system trying to access bro
 ### Issue 2: "No module named 'openmanus'" Error
 The startup error occurred because:
 - OpenManus is a git submodule required by enhanced_agent
-- Git submodules aren't automatically included in Railway deployments
-- The submodule directory was empty on Railway, causing installation to fail
+- The public GitHub repository (https://github.com/mannaandpoem/OpenManus.git) is empty
+- Railway needs the actual OpenManus source files to install the package
 
 ### Changes Made
 
 1. **Updated Dockerfile** - Now creates a production-ready `.streamlit/config.toml` during build
-2. **Updated Dockerfile** - Installs OpenManus directly from GitHub instead of local submodule
+2. **Updated Dockerfile** - Copies and installs local OpenManus directory
 3. **Updated railway.toml** - Added environment variables for headless mode
-4. **Created config template** - `.streamlit/config.toml.example` for reference
+4. **Updated .railwayignore** - Removed OpenManus exclusion to deploy the files
+5. **Created config template** - `.streamlit/config.toml.example` for reference
 
 ### Deploy to Railway
 
-1. **Commit the changes:**
+1. **Ensure OpenManus submodule is initialized:**
    ```bash
-   git add Dockerfile railway.toml .streamlit/config.toml.example RAILWAY_DEPLOY.md
-   git commit -m "Fix: Install OpenManus from GitHub for Railway deployment"
+   git submodule update --init --recursive
+   ```
+
+2. **Commit the changes:**
+   ```bash
+   git add Dockerfile railway.toml .railwayignore .streamlit/config.toml.example RAILWAY_DEPLOY.md
+   git commit -m "Fix: Deploy local OpenManus files to Railway"
    git push
    ```
 
@@ -96,7 +102,7 @@ The error occurred because:
 - The empty submodule directory caused `pip install -e OpenManus/` to fail
 
 The fix:
-- ✅ Changed to clone and install OpenManus from GitHub repository
-- ✅ Clones repo to `/tmp/OpenManus` and installs with pip
-- ✅ Removed dependency on local submodule for Railway builds
+- ✅ Copy local OpenManus submodule files to Docker image
+- ✅ Install OpenManus from copied directory with `pip install OpenManus/`
+- ✅ Removed OpenManus from `.railwayignore` to include files in deployment
 - ✅ Proper dependency installation order (requirements → OpenManus → enhanced_agent)
