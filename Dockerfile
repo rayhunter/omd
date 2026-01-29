@@ -42,6 +42,11 @@ RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir OpenManus/ && \
     pip install --no-cache-dir -e enhanced_agent/
 
+# Copy OpenManus config to the installed package location
+RUN OPENMANUS_PATH=$(python -c "import openmanus; import os; print(os.path.dirname(openmanus.__file__))") && \
+    mkdir -p "$OPENMANUS_PATH/../config" && \
+    cp -r OpenManus/config/* "$OPENMANUS_PATH/../config/"
+
 EXPOSE 8501
 
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
