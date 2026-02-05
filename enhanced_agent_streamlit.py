@@ -55,10 +55,41 @@ try:
     session_manager = get_session_manager()
     logger = get_redacted_logger(__name__)
 except ImportError:
+    import logging
     PRIVACY_AVAILABLE = False
     session_manager = None
-    logger = None
-    print("⚠️  Privacy features not available")
+    
+    # Create a compatibility wrapper that mimics RedactedLogger interface
+    class _LoggerWrapper:
+        def __init__(self, logger):
+            self._logger = logger
+        
+        def info_user_input(self, message: str, user_input: str):
+            """Fallback for info_user_input when privacy module unavailable"""
+            self._logger.info(f"{message}: {user_input[:100]}..." if len(user_input) > 100 else f"{message}: {user_input}")
+        
+        def info_agent_output(self, message: str, agent_output: str):
+            """Fallback for info_agent_output when privacy module unavailable"""
+            self._logger.info(f"{message}: {agent_output[:100]}..." if len(agent_output) > 100 else f"{message}: {agent_output}")
+        
+        # Proxy standard logging methods
+        def debug(self, *args, **kwargs):
+            self._logger.debug(*args, **kwargs)
+        
+        def info(self, *args, **kwargs):
+            self._logger.info(*args, **kwargs)
+        
+        def warning(self, *args, **kwargs):
+            self._logger.warning(*args, **kwargs)
+        
+        def error(self, *args, **kwargs):
+            self._logger.error(*args, **kwargs)
+        
+        def critical(self, *args, **kwargs):
+            self._logger.critical(*args, **kwargs)
+    
+    logger = _LoggerWrapper(logging.getLogger(__name__))
+    print("⚠️  Privacy features not available - using standard logging")
 
 # Optional: enable debug console logging in the browser (disabled by default)
 DEBUG_CONSOLE = os.getenv("STREAMLIT_DEBUG_CONSOLE", "").strip().lower() in {"1", "true", "yes", "on"}
