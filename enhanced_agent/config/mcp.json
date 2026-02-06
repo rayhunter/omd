@@ -89,7 +89,7 @@
       "name": "weather",
       "type": "weather",
       "url": "https://api.openweathermap.org/data/2.5",
-      "api_key": "${WEATHER_API_KEY}",
+      "api_key": "${OPENWEATHER_API_KEY}",
       "timeout": 30,
       "max_tokens": 512,
       "temperature": 0.3,

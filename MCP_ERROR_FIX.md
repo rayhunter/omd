@@ -84,7 +84,7 @@ After the fix, these servers are enabled and working:
    
 6. **weather** - Topic-based routing
    - Current weather, forecasts
-   - Requires: `WEATHER_API_KEY` environment variable
+   - Requires: `OPENWEATHER_API_KEY` environment variable
 
 ## Testing the Fix
 
@@ -134,8 +134,8 @@ For local development with Ollama:
 Set these in Railway environment variables for additional capabilities:
 
 ```bash
-NEWS_API_KEY=your-key-here          # For news-api server
-WEATHER_API_KEY=your-key-here       # For weather server
+NEWS_API_KEY=your-key-here              # For news-api server
+OPENWEATHER_API_KEY=your-key-here       # For weather server
 ```
 
 Get API keys:
