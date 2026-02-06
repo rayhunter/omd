@@ -5,6 +5,7 @@ import sys
 import uuid
 from pathlib import Path
 import time
+import threading
 from typing import Dict, List, Optional
 # Load environment variables from .env file (if available locally)
 # Streamlit Cloud uses secrets.toml instead of .env
@@ -821,8 +822,6 @@ def main():
             status_placeholder = st.empty()
             
             # Track processing time
-            import time
-            import threading
             start_time = time.time()
             stop_timer = threading.Event()
             
