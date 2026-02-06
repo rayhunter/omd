@@ -65,26 +65,63 @@ except ImportError:
 config = Config()
 
 # Import configuration helper
-from .config_helper import get_model_config, is_cloud_environment
+from .config_helper import get_model_config, is_cloud_environment, get_llm_provider_config
 
 # Get appropriate model for current environment
-model_name = get_model_config()
+provider_config = get_llm_provider_config()
+model_name = provider_config["model"]
 environment = "cloud" if is_cloud_environment() else "local"
 print(f"🌍 Environment: {environment}")
+print(f"🤖 Using LLM provider: {provider_config['provider']}")
 print(f"🤖 Using model: {model_name}")
 
-# Initialize DSPy+MCP integration
-try:
-    dspy_mcp = DSPyMCPIntegration(
-        llm_model=model_name,
-        dspy_cache=True
-    )
-    print("✅ DSPy+MCP integration initialized successfully")
-except Exception as e:
-    print(f"⚠️  Warning: DSPy+MCP integration failed to initialize: {e}")
-    print("📝 Falling back to basic MCP client")
+# Check if we have a valid provider
+if provider_config["provider"] == "none":
+    print("❌ CRITICAL: No LLM provider configured!")
+    print("Please set OPENAI_API_KEY or ANTHROPIC_API_KEY in Railway environment variables.")
     dspy_mcp = None
-    mcp_client = MCPClient()
+    mcp_client = None
+else:
+    # #region agent log
+    import json
+    import time as _time
+    log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+    try:
+        with open(log_path, 'a') as f:
+            f.write(json.dumps({'sessionId': 'debug-session', 'runId': 'run2', 'hypothesisId': 'B', 'location': 'app.py:71-74', 'message': 'Model selection at startup (FIXED)', 'data': {'model_name': model_name, 'environment': environment, 'provider': provider_config['provider'], 'OPENAI_API_KEY': bool(os.getenv('OPENAI_API_KEY')), 'ANTHROPIC_API_KEY': bool(os.getenv('ANTHROPIC_API_KEY')), 'RAILWAY_ENVIRONMENT': os.getenv('RAILWAY_ENVIRONMENT')}, 'timestamp': _time.time() * 1000}) + '\n')
+    except: pass
+    # #endregion
+
+# Initialize DSPy+MCP integration
+if provider_config["provider"] != "none":
+    try:
+        dspy_mcp = DSPyMCPIntegration(
+            llm_model=model_name,
+            dspy_cache=True
+        )
+        print("✅ DSPy+MCP integration initialized successfully")
+        # #region agent log
+        import json
+        log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json.dumps({'sessionId': 'debug-session', 'runId': 'run2', 'hypothesisId': 'C', 'location': 'app.py:78-82', 'message': 'DSPy+MCP initialization SUCCESS (FIXED)', 'data': {'model_name': model_name, 'provider': provider_config['provider']}, 'timestamp': _time.time() * 1000}) + '\n')
+        except: pass
+        # #endregion
+    except Exception as e:
+        print(f"⚠️  Warning: DSPy+MCP integration failed to initialize: {e}")
+        print("📝 Falling back to basic MCP client")
+        # #region agent log
+        import json
+        log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+        try:
+            with open(log_path, 'a') as f:
+                f.write(json.dumps({'sessionId': 'debug-session', 'runId': 'run2', 'hypothesisId': 'E', 'location': 'app.py:84-87', 'message': 'DSPy+MCP initialization FAILED, using fallback', 'data': {'model_name': model_name, 'error': str(e), 'error_type': type(e).__name__}, 'timestamp': _time.time() * 1000}) + '\n')
+        except: pass
+        # #endregion
+        dspy_mcp = None
+        mcp_client = MCPClient()
+
 
 class EnhancedResearchAgent(ReActAgent):
     """

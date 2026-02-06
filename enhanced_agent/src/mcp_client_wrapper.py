@@ -27,6 +27,15 @@ class MCPClientWrapper:
             config_path = str(Path.home() / ".cursor" / "mcp.json")
         
         self.config_path = config_path
+        # #region agent log
+        import json as _json
+        import time as _time
+        log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+        try:
+            with open(log_path, 'a') as f:
+                f.write(_json.dumps({'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'D', 'location': 'mcp_client_wrapper.py:27-30', 'message': 'MCP config path determined', 'data': {'config_path': config_path, 'home_dir': str(Path.home()), 'config_exists': Path(config_path).exists()}, 'timestamp': _time.time() * 1000}) + '\n')
+        except: pass
+        # #endregion
         self.config = self._load_config()
         self.active_sessions: Dict[str, tuple] = {}  # Store (session, context_managers)
         

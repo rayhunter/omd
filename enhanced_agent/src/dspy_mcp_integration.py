@@ -173,9 +173,25 @@ class DSPyMCPIntegration:
             )
             
             print(f"✅ DSPy configured with {model_name} (using {model_path})")
+            # #region agent log
+            import json
+            log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json.dumps({'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'C', 'location': 'dspy_mcp_integration.py:175', 'message': 'DSPy LM configured', 'data': {'model_name': model_name, 'model_path': model_path, 'enable_cache': enable_cache}, 'timestamp': time.time() * 1000}) + '\n')
+            except: pass
+            # #endregion
             
         except Exception as e:
             print(f"⚠️  Warning: Could not configure DSPy with {model_name}: {e}")
+            # #region agent log
+            import json
+            log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+            try:
+                with open(log_path, 'a') as f:
+                    f.write(json.dumps({'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'C', 'location': 'dspy_mcp_integration.py:178', 'message': 'DSPy LM config FAILED', 'data': {'model_name': model_name, 'error': str(e)}, 'timestamp': time.time() * 1000}) + '\n')
+            except: pass
+            # #endregion
             print("📝 Using default DSPy configuration")
             
     async def analyze_query_structure(self, user_query: str) -> Dict[str, Any]:

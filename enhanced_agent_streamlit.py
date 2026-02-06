@@ -240,6 +240,17 @@ a:hover {
 </style>
 """, unsafe_allow_html=True)
 
+# #region agent log
+import json as _json
+import time as _time
+import os as _os
+log_path = '/Users/raymondhunter/LocalProjects/10workspaceOct25/omd/.cursor/debug.log'
+try:
+    with open(log_path, 'a') as f:
+        f.write(_json.dumps({'sessionId': 'debug-session', 'runId': 'run1', 'hypothesisId': 'A', 'location': 'enhanced_agent_streamlit.py:243', 'message': 'Streamlit app starting', 'data': {'RAILWAY_ENVIRONMENT': _os.getenv('RAILWAY_ENVIRONMENT'), 'STREAMLIT_CLOUD': _os.getenv('STREAMLIT_CLOUD'), 'PORT': _os.getenv('PORT'), 'OPENAI_API_KEY': bool(_os.getenv('OPENAI_API_KEY')), 'ANTHROPIC_API_KEY': bool(_os.getenv('ANTHROPIC_API_KEY')), 'HOME': _os.getenv('HOME')}, 'timestamp': _time.time() * 1000}) + '\n')
+except: pass
+# #endregion
+
 # Import the enhanced agent
 try:
     from enhanced_agent.src.app import run_enhanced_agent, create_agent, dspy_mcp
