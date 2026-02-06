@@ -1,7 +1,7 @@
 {
   "default_mcp_server": "web-search",
   "server_selection_strategy": "multi",
-  "fallback_servers": ["web-search", "llama-mcp"],
+  "fallback_servers": ["web-search", "wikidata", "arxiv"],
   "servers": {
     "web-search": {
       "name": "web-search",
@@ -23,9 +23,10 @@
       "temperature": 0.7,
       "max_tokens": 1024,
       "timeout": 60,
-      "enabled": true,
+      "enabled": false,
+      "local_only": true,
       "capabilities": ["general_knowledge", "reasoning", "analysis"],
-      "description": "Local Ollama model for general knowledge and reasoning"
+      "description": "Local Ollama model for general knowledge and reasoning (disabled on cloud)"
     },
     "wikidata": {
       "name": "wikidata",

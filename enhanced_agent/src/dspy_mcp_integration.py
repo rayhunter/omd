@@ -389,12 +389,14 @@ class DSPyMCPIntegration:
                             "error": None
                         }
                     else:
-                        print(f"   ⚠️  Query failed or returned error: {str(response)[:100]}...")
+                        # Show the actual error for better debugging
+                        error_detail = str(response)[:300] if response else "No response"
+                        print(f"   ⚠️  Query failed or returned error: {error_detail}")
                         return {
                             "term": term,
                             "response": str(response),
                             "success": False,
-                            "error": "Query returned error"
+                            "error": error_detail
                         }
 
                 except Exception as e:

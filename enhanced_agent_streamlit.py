@@ -817,7 +817,27 @@ def main():
         
         # Process the query with Langfuse tracing
         with st.chat_message("assistant"):
-            with st.spinner("🧠 Processing your request..."):
+            # Create placeholders for status and content
+            status_placeholder = st.empty()
+            
+            # Track processing time
+            import time
+            import threading
+            start_time = time.time()
+            stop_timer = threading.Event()
+            
+            def update_timer():
+                """Update timer display while processing"""
+                while not stop_timer.is_set():
+                    elapsed = time.time() - start_time
+                    status_placeholder.info(f"🧠 Processing your request... ({elapsed:.1f}s)")
+                    time.sleep(0.1)  # Update every 100ms
+            
+            # Start timer thread
+            timer_thread = threading.Thread(target=update_timer, daemon=True)
+            timer_thread.start()
+            
+            try:
                 # Wrap processing in Langfuse trace if available
                 if LANGFUSE_AVAILABLE and langfuse_manager.enabled:
                     with langfuse_manager.trace_span(
@@ -841,27 +861,39 @@ def main():
                         agent=st.session_state.agent,
                         session_id=st.session_state.session_id
                     ))
-                
-                if error:
-                    error_msg = f"❌ **Error:** {error}"
-                    st.error(error_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": error_msg})
+            finally:
+                # Stop timer thread
+                stop_timer.set()
+                timer_thread.join(timeout=0.5)
+            
+            # Calculate elapsed time
+            elapsed_time = time.time() - start_time
+            
+            # Clear status message
+            status_placeholder.empty()
+            
+            if error:
+                error_msg = f"❌ **Error:** {error}"
+                st.error(error_msg)
+                st.session_state.messages.append({"role": "assistant", "content": error_msg})
 
-                    # Add to session manager
-                    if PRIVACY_AVAILABLE and session_manager:
-                        session_manager.add_message(st.session_state.session_id, "assistant", error_msg)
+                # Add to session manager
+                if PRIVACY_AVAILABLE and session_manager:
+                    session_manager.add_message(st.session_state.session_id, "assistant", error_msg)
 
-                else:
-                    st.markdown(result)
-                    st.session_state.messages.append({"role": "assistant", "content": result})
+            else:
+                # Show completion time
+                st.caption(f"✅ Response generated in {elapsed_time:.1f}s")
+                st.markdown(result)
+                st.session_state.messages.append({"role": "assistant", "content": result})
 
-                    # Add to session manager
-                    if PRIVACY_AVAILABLE and session_manager:
-                        session_manager.add_message(st.session_state.session_id, "assistant", result)
+                # Add to session manager
+                if PRIVACY_AVAILABLE and session_manager:
+                    session_manager.add_message(st.session_state.session_id, "assistant", result)
 
-                    # Log with privacy
-                    if logger:
-                        logger.info_agent_output("Chat query completed", result)
+                # Log with privacy
+                if logger:
+                    logger.info_agent_output("Chat query completed", result)
 
     
    

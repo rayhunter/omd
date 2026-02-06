@@ -68,6 +68,10 @@ class UnifiedMCPClient:
         
         # MCP SDK client for real MCP protocol communication
         self.mcp_client = MCPClientWrapper()
+        
+        # Log enabled servers
+        enabled_servers = self.config.get_enabled_servers()
+        logger.info(f"MCP Client initialized with {len(enabled_servers)} enabled servers: {', '.join(enabled_servers)}")
 
     # ==================== Public API ====================
 

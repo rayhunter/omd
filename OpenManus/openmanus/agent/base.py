@@ -144,12 +144,12 @@ class BaseAgent(BaseModel, ABC):
                 if self.is_stuck():
                     self.handle_stuck_state()
 
-                results.append(f"Step {self.current_step}: {step_result}")
+                results.append(f"**Step {self.current_step}:**\n\n{step_result}\n\n---\n")
 
             if self.current_step >= self.max_steps:
                 self.current_step = 0
                 self.state = AgentState.IDLE
-                results.append(f"Terminated: Reached max steps ({self.max_steps})")
+                results.append(f"\n⚠️ **Terminated:** Reached max steps ({self.max_steps})")
         await SANDBOX_CLIENT.cleanup()
         return "\n".join(results) if results else "No steps executed"
 

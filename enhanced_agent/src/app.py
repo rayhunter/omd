@@ -216,7 +216,7 @@ class EnhancedResearchAgent(ReActAgent):
             if self.use_dspy_integration:
                 # Use DSPy for query analysis
                 analysis = await self.dspy_mcp.analyze_query_structure(self.current_query)
-                return f"📊 Query Analysis Complete - Topic: {analysis['main_topic']}, Type: {analysis['query_type']}"
+                return f"📊 **Query Analysis Complete**\n\n- **Topic:** {analysis['main_topic']}\n- **Type:** {analysis['query_type']}"
             else:
                 return f"📝 Analyzing query: {self.current_query[:100]}..."
                 
