@@ -1,51 +1,49 @@
-FROM python:3.12-slim
+# Multi-stage build for Enhanced Research Agent
+# Optimized for Railway deployment
 
+FROM python:3.12-slim as base
+
+# Set working directory
 WORKDIR /app
 
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git \
+    build-essential \
     curl \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements first for better caching
 COPY requirements.txt .
-COPY OpenManus OpenManus/
-COPY enhanced_agent enhanced_agent/
-COPY enhanced_agent_streamlit.py .
-COPY config config/
+COPY enhanced_agent/requirements.txt ./enhanced_agent/
 
-# Create .streamlit directory and config for production
-RUN mkdir -p .streamlit && \
-    echo '[server]' > .streamlit/config.toml && \
-    echo 'port = 8501' >> .streamlit/config.toml && \
-    echo 'address = "0.0.0.0"' >> .streamlit/config.toml && \
-    echo 'headless = true' >> .streamlit/config.toml && \
-    echo 'enableCORS = false' >> .streamlit/config.toml && \
-    echo 'enableXsrfProtection = true' >> .streamlit/config.toml && \
-    echo '' >> .streamlit/config.toml && \
-    echo '[browser]' >> .streamlit/config.toml && \
-    echo 'gatherUsageStats = false' >> .streamlit/config.toml && \
-    echo 'serverAddress = "0.0.0.0"' >> .streamlit/config.toml && \
-    echo 'serverPort = 8501' >> .streamlit/config.toml && \
-    echo '' >> .streamlit/config.toml && \
-    echo '[theme]' >> .streamlit/config.toml && \
-    echo 'base = "light"' >> .streamlit/config.toml && \
-    echo 'primaryColor = "#FF4B4B"' >> .streamlit/config.toml && \
-    echo 'backgroundColor = "#FFFFFF"' >> .streamlit/config.toml && \
-    echo 'secondaryBackgroundColor = "#F0F2F6"' >> .streamlit/config.toml && \
-    echo 'textColor = "#262730"' >> .streamlit/config.toml && \
-    echo '' >> .streamlit/config.toml && \
-    echo '[client]' >> .streamlit/config.toml && \
-    echo 'showErrorDetails = false' >> .streamlit/config.toml && \
-    echo 'toolbarMode = "minimal"' >> .streamlit/config.toml
-
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir OpenManus/ && \
-    pip install --no-cache-dir -e enhanced_agent/ && \
-    mkdir -p /usr/local/lib/python3.12/site-packages/config && \
-    cp -r OpenManus/config/* /usr/local/lib/python3.12/site-packages/config/
+    pip install --no-cache-dir -r enhanced_agent/requirements.txt
 
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p /app/.streamlit
+
+# Expose Streamlit port (Railway will override with $PORT)
 EXPOSE 8501
 
-HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health
+# Health check using Streamlit's built-in health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8501}/_stcore/health || exit 1
 
-CMD ["streamlit", "run", "enhanced_agent_streamlit.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Run Streamlit
+CMD streamlit run enhanced_agent_streamlit.py \
+    --server.port=${PORT:-8501} \
+    --server.address=0.0.0.0 \
+    --server.headless=true \
+    --server.enableCORS=false \
+    --server.enableXsrfProtection=true

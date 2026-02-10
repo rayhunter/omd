@@ -1,13 +1,16 @@
 [build]
-builder = "dockerfile"
-dockerfile = "./Dockerfile"
+# Use Nixpacks for automatic Python detection and dependency installation
+builder = "NIXPACKS"
 
 [deploy]
-startCommand = "streamlit run enhanced_agent_streamlit.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true"
-restartPolicyMaxRetries = 5
-restartPolicyWindowSeconds = 600
+# Streamlit health check endpoint
+healthcheckPath = "/_stcore/health"
+healthcheckTimeout = 100
+startCommand = "streamlit run enhanced_agent_streamlit.py --server.port $PORT --server.address 0.0.0.0 --server.headless true"
 
-[deploy.env]
-STREAMLIT_SERVER_HEADLESS = "true"
-STREAMLIT_SERVER_ENABLE_CORS = "false"
-STREAMLIT_BROWSER_GATHER_USAGE_STATS = "false"
+# Restart policy
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
+[services]
+# Railway will auto-detect this is a web service from the Procfile
